@@ -43,26 +43,26 @@ def compute_view_params(
     Returns:
         tuple: Tuple containing azimuth, distance, elevation, and lookat values.
     """
-    # Compute camera-to-target vector and distance
+    # 计算相机到目标的向量和距离
     cam_to_target = target_pos - camera_pos
     distance = np.linalg.norm(cam_to_target)
 
-    # Compute azimuth and elevation
+    # 计算方位角和仰角
     azimuth = np.arctan2(cam_to_target[1], cam_to_target[0])
-    azimuth = np.rad2deg(azimuth) # [deg]
+    azimuth = np.rad2deg(azimuth)  # 转换为度
     elevation = np.arcsin(cam_to_target[2] / distance)
-    elevation = np.rad2deg(elevation) # [deg]
+    elevation = np.rad2deg(elevation)  # 转换为度
 
-    # Compute lookat point
+    # 计算注视点
     lookat = target_pos
 
-    # Compute camera orientation matrix
+    # 计算相机方向矩阵
     zaxis = cam_to_target / distance
     xaxis = np.cross(up_vector, zaxis)
     yaxis = np.cross(zaxis, xaxis)
     cam_orient = np.array([xaxis, yaxis, zaxis])
 
-    # Return computed values
+    # 返回计算结果
     return azimuth, distance, elevation, lookat
 
 def get_idxs(list_query,list_domain):
@@ -105,7 +105,7 @@ def sample_xyzs(n_sample=1,x_range=[0,1],y_range=[0,1],z_range=[0,1],min_dist=0.
             xyz = np.array([x_rand,y_rand,z_rand])
             if p_idx == 0: break
             devc = cdist(xyz.reshape((-1,3)),xyzs[:p_idx,:].reshape((-1,3)),'euclidean')
-            if devc.min() > min_dist: break # minimum distance between objects
+            if devc.min() > min_dist: break  # 满足物体间最小距离要求
         xyzs[p_idx,:] = xyz
     return xyzs
 
@@ -120,8 +120,8 @@ class ObjectSpawner:
         self.env = env
 
     def spawn_objects(self):
-        # --- Spawn the tray ---
-        # Sample tray position using the provided sampling function.
+        # --- 生成托盘 ---
+        # 使用采样函数随机生成托盘位置
         tray_xyz = sample_xyzs(
             n_sample=1,
             x_range=[0.3, 0.7],
@@ -132,23 +132,23 @@ class ObjectSpawner:
         )[0]
         self.env.set_p_base_body(body_name='body_obj_tray_5', p=tray_xyz)
         
-        # Randomly choose a tray orientation (and swap dimensions if rotated)
+        # 随机选择托盘朝向（如旋转则交换尺寸）
         if np.random.rand() > 0.5:
-            # Rotate the tray by 90° about the z-axis
+            # 绕 z 轴旋转托盘 90°
             self.env.set_R_base_body(body_name='body_obj_tray_5', 
                                      R=rpy2r(np.deg2rad([0, 0, 90])))
 
-        # --- Get object names to spawn (exclude the tray) ---
+        # --- 获取待生成的物体名称（排除托盘） ---
         obj_names = self.env.get_body_names(prefix='body_obj_')
         if 'body_obj_tray_5' in obj_names:
             obj_names.remove('body_obj_tray_5')
         
-        # List to keep track of already placed objects to avoid collisions.
+        # 记录已放置物体位置以避免碰撞
         placed_positions = []
         
-        # Spawn each object with a non-colliding position and random rotation.
+        # 逐个放置物体，避免碰撞并随机旋转
         for name in obj_names:
-            # Set x-range based on a heuristic: objects with "can" use a restricted range.
+            # 根据启发式规则设定 x 范围：含 "can" 的物体使用受限范围
             if 'can' in name or 'bottle' in name:
                 x_range = [0.5, 0.7]
                 z = 0.9
@@ -158,19 +158,19 @@ class ObjectSpawner:
             y_range = [-0.35, 0.35]
 
             
-            # Find a position that doesn't overlap with previously placed objects.
+            # 寻找与已放置物体不重叠的位置
             pos = self._get_non_colliding_position(
                 placed_positions=placed_positions,
                 x_range=x_range,
                 y_range=y_range,
                 min_dist=0.1,
-                tray_xyz=tray_xyz  # Optionally avoid the tray's area if needed.
+                tray_xyz=tray_xyz  # 可选：避开托盘区域
             )
             placed_positions.append(pos)
-            # Set the object's position (using the same z as the tray for simplicity).
+            # 设置物体位置（简化起见使用与托盘相同的 z）
             self.env.set_p_base_body(body_name=name, p=[pos[0], pos[1], z])
             
-            # Optionally, assign a random rotation.
+            # 可选：分配随机旋转角度
             angle = np.random.uniform(0, 360)
             self.env.set_R_base_body(body_name=name, R=rpy2r(np.deg2rad([0, 0, angle])))
 
@@ -178,19 +178,19 @@ class ObjectSpawner:
         """Attempts to sample a position that does not collide with already placed objects (or the tray).
            Raises a ValueError if no valid position is found after a fixed number of attempts."""
         max_attempts = 100
-        tray_margin = 0.3  # Define a margin to avoid overlap with the tray center if needed.
+        tray_margin = 0.3  # 定义边距以避免与托盘中心重叠
         for attempt in range(max_attempts):
             x = np.random.uniform(x_range[0], x_range[1])
             y = np.random.uniform(y_range[0], y_range[1])
             candidate = np.array([x, y])
             
             collision = False
-            # Check distance from already placed objects.
+            # 检查与已放置物体的距离
             for pos in placed_positions:
                 if np.linalg.norm(candidate - np.array(pos)) < min_dist:
                     collision = True
                     break
-            # Optional: check if candidate is too close to the tray's center.
+            # 可选：检查候选点是否太靠近托盘中心
             if np.linalg.norm(candidate - np.array(tray_xyz[:2])) < tray_margin:
                 collision = True
             if not collision:
@@ -210,7 +210,7 @@ def sample_xys(n_sample=1,x_range=[0,1],y_range=[0,1],min_dist=0.1,xy_margin=0.0
             xy = np.array([x_rand,y_rand])
             if p_idx == 0: break
             devc = cdist(xy.reshape((-1,3)),xys[:p_idx,:].reshape((-1,3)),'euclidean')
-            if devc.min() > min_dist: break # minimum distance between objects
+            if devc.min() > min_dist: break  # 满足物体间最小距离要求
         xys[p_idx,:] = xy
     return xys
 
@@ -223,7 +223,7 @@ def save_png(img,png_path,verbose=False):
         os.makedirs(directory)
         if verbose:
             print ("[%s] generated."%(directory))
-    # Save to png
+    # 保存为 PNG
     plt.imsave(png_path,img)
     if verbose:
         print ("[%s] saved."%(png_path))
@@ -234,7 +234,7 @@ def finite_difference_matrix(n, dt, order):
     dt: time interval
     order: (1=velocity, 2=acceleration, 3=jerk)
     """ 
-    # Order
+    # 阶数
     if order == 1:  # velocity
         coeffs = np.array([-1, 1])
     elif order == 2:  # acceleration
@@ -261,7 +261,7 @@ def finite_difference_matrix(n, dt, order):
         mat[-2, -4:] = np.array([-1, 3, -3, 1])  # backward difference
         mat[-3, -4:] = np.array([-1, 3, -3, 1])  # backward difference
 
-    # Return 
+    # 返回 
     return mat / (dt ** order)
 
 def get_A_vel_acc_jerk(n=100,dt=1e-2):
@@ -326,7 +326,7 @@ def check_vel_acc_jerk_nd(
         max_accs.append(np.abs(acc).max())
         max_jerks.append(np.abs(jerk).max())
 
-    # Print
+    # 打印信息
     if verbose:
         print ("Checking velocity, acceleration, and jerk of a L:[%d]xD:[%d] trajectory (factor:[%.2f])."%
                (L,D,factor))
@@ -337,7 +337,7 @@ def check_vel_acc_jerk_nd(
                     factor*max_vels[d_idx],factor*max_accs[d_idx],factor*max_jerks[d_idx])
                 )
             
-    # Return
+    # 返回
     return vel_inits,vel_finals,max_vels,max_accs,max_jerks
 
         
@@ -483,7 +483,7 @@ class TicTocClass(object):
                     print ("%s Elapsed time:[%.2f]%s"%
                         (str,time_show,time_unit))
         self.cnt = self.cnt + 1
-        # Return
+        # 返回
         return self.time_elapsed
     
 def sleep(sec):
@@ -638,5 +638,5 @@ def add_title_to_img(img,text='Title',margin_top=30,color=(0,0,0),font_size=20,r
     # Draw text
     draw.text((x, y), text, font=font, fill=color)
     img_with_title = np.array(new_img)
-    # Return
+    # 返回
     return img_with_title

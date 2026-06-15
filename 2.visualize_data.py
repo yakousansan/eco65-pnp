@@ -2,13 +2,13 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 import numpy as np
 from lerobot.datasets.utils import write_json, serialize_dict
 
-dataset = LeRobotDataset('eco65_pnp', root='./demo_data') # if youu want to use the example data provided, root = './demo_data_example' instead!
+dataset = LeRobotDataset('eco65_pnp', root='./demo_data') # 如需使用示例数据，改为 root='./demo_data_example'
 
 import torch
 
 class EpisodeSampler(torch.utils.data.Sampler):
     """
-    Sampler for a single episode
+    单个 episode 的采样器
     """
     def __init__(self, dataset: LeRobotDataset, episode_index: int):
         from_idx = int(dataset.meta.episodes[episode_index]["dataset_from_index"])
@@ -21,7 +21,7 @@ class EpisodeSampler(torch.utils.data.Sampler):
     def __len__(self) -> int:
         return len(self.frame_ids)
 
-# Select an episode index that you want to visualize
+# 选择要可视化的 episode 编号
 episode_index = 0
 
 episode_sampler = EpisodeSampler(dataset, episode_index)
@@ -44,21 +44,21 @@ PnPEnv.reset()
 while PnPEnv.env.is_viewer_alive():
     PnPEnv.step_env()
     if PnPEnv.env.loop_every(HZ=20):
-        # Get the action from dataset
+        # 从数据集中读取动作
         data = next(iter_dataloader)
         if step == 0:
-            # Reset the object pose based on the dataset
+            # 根据数据集恢复物体初始位姿
             PnPEnv.set_obj_pose(data['obj_init'][0,:3], data['obj_init'][0,3:])
-        # Get the action from dataset
+        # 从数据集中获取动作
         action = data['action'].numpy()
         obs = PnPEnv.step(action[0])
 
-        # Visualize the image from dataset to rgb_overlay
+        # 将数据集中的图像显示到 RGB 叠加层
         PnPEnv.rgb_agent = data['observation.image'][0].numpy()*255
         PnPEnv.rgb_ego = data['observation.wrist_image'][0].numpy()*255
         PnPEnv.rgb_agent = PnPEnv.rgb_agent.astype(np.uint8)
         PnPEnv.rgb_ego = PnPEnv.rgb_ego.astype(np.uint8)
-        # 3 256 256 -> 256 256 3
+        # 3×256×256 → 256×256×3
         PnPEnv.rgb_agent = np.transpose(PnPEnv.rgb_agent, (1,2,0))
         PnPEnv.rgb_ego = np.transpose(PnPEnv.rgb_ego, (1,2,0))
         PnPEnv.rgb_side = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -66,7 +66,7 @@ while PnPEnv.env.is_viewer_alive():
         step += 1
 
         if step == len(episode_sampler):
-            # start from the beginning
+            # 回到开头重新播放
             iter_dataloader = iter(dataloader)
             PnPEnv.reset()
             step = 0

@@ -278,7 +278,6 @@ eco65-act-pnp/
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `SEED` | `None` | Random seed (None=random positions, set value=fixed) |
 | `NUM_DEMO` | `1` | Number of episodes to collect |
 | `ROOT` | `"./demo_data"` | Dataset save path |
 | `TASK_NAME` | `"Put mug cup on the plate"` | Task description |

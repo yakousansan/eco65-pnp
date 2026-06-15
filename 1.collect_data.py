@@ -7,16 +7,14 @@ from mujoco_env.y_env import SimpleEnv
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 
-SEED = None  # None = random positions each run. Set to e.g. 0 for reproducible positions
-
 REPO_NAME = 'eco65_pnp'
-NUM_DEMO = 1 # Number of demonstrations to collect
-ROOT = "./demo_data" # The root directory to save the demonstrations
+NUM_DEMO = 1 # 采集演示条数
+ROOT = "./demo_data" # 演示数据保存根目录
 
 TASK_NAME = 'Put mug cup on the plate'
 xml_path = './model/demo_scene.xml'
-# Define the environment
-PnPEnv = SimpleEnv(xml_path, seed = SEED, state_type = 'joint_angle')
+# 初始化仿真环境
+PnPEnv = SimpleEnv(xml_path, state_type = 'joint_angle')
 
 create_new = True
 if os.path.exists(ROOT):
@@ -34,7 +32,7 @@ if create_new:
                 repo_id=REPO_NAME,
                 root = ROOT,
                 robot_type="eco65_2f85",
-                fps=20, # 20 frames per second
+                fps=20, # 每秒 20 帧
                 features={
                     "observation.image": {
                         "dtype": "image",
@@ -54,12 +52,12 @@ if create_new:
                     "action": {
                         "dtype": "float32",
                         "shape": (7,),
-                        "names": ["action"], # 6 joint angles and 1 gripper
+                        "names": ["action"], # 6 个关节角 + 1 个夹爪
                     },
                     "obj_init": {
                         "dtype": "float32",
                         "shape": (6,),
-                        "names": ["obj_init"], # just the initial position of the object. Not used in training.
+                        "names": ["obj_init"], # 物体初始位置，训练时不使用
                     },
                 },
                 image_writer_threads=10,
@@ -71,34 +69,32 @@ else:
 
 action = np.zeros(7)
 episode_id = 0
-record_flag = False # Start recording when the robot starts moving
+record_flag = False # 机器人开始移动后再录制
 while PnPEnv.env.is_viewer_alive() and episode_id < NUM_DEMO:
     PnPEnv.step_env()
     if PnPEnv.env.loop_every(HZ=20):
-        # check if the episode is done
+        # 检查 episode 是否结束
         done = PnPEnv.check_success()
         if done:
-            # Save the episode data and reset the environment
+            # 保存 episode 数据并重置环境
             dataset.save_episode()
-            PnPEnv.reset(seed = SEED)
+            PnPEnv.reset()
             episode_id += 1
-        # Teleoperate the robot and get delta end-effector pose with gripper
+        # 遥操作机器人，获取末端增量位姿和夹爪状态
         action, reset  = PnPEnv.teleop_robot()
         if not record_flag and sum(action) != 0:
             record_flag = True
             print("Start recording")
         if reset:
-            # Reset the environment and clear the episode buffer
-            # This can be done by pressing 'z' key
-            PnPEnv.reset(seed=SEED)
-            # PnPEnv.reset()
+            # 重置环境并清空 episode 缓冲区
+            # 可按 'z' 键触发
+            PnPEnv.reset()
             dataset.clear_episode_buffer()
             record_flag = False
-        # Step the environment
-        # Get the end-effector pose and images
+        # 推进仿真，获取末端位姿和图像
         ee_pose = PnPEnv.get_ee_pose()
         agent_image,wrist_image = PnPEnv.grab_image()
-        # # resize to 256x256
+        # 缩放至 256x256
         agent_image = Image.fromarray(agent_image)
         wrist_image = Image.fromarray(wrist_image)
         agent_image = agent_image.resize((256, 256))
@@ -107,7 +103,7 @@ while PnPEnv.env.is_viewer_alive() and episode_id < NUM_DEMO:
         wrist_image = np.array(wrist_image)
         joint_q = PnPEnv.step(action)
         if record_flag:
-            # Add the frame to the dataset
+            # 将当前帧写入数据集
             dataset.add_frame( {
                     "observation.image": agent_image,
                     "observation.wrist_image": wrist_image,
@@ -121,7 +117,7 @@ while PnPEnv.env.is_viewer_alive() and episode_id < NUM_DEMO:
 
 PnPEnv.env.close_viewer()
 dataset.finalize()
-# Clean up the images folder
+# 清理临时图像文件夹
 import shutil
 images_dir = dataset.root / 'images'
 if images_dir.exists():

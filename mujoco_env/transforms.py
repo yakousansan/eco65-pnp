@@ -59,7 +59,7 @@ def rpy2r_order(r0, order=[0,1,2]):
 
 def r2rpy(R,unit='rad'):
     """
-        Rotation matrix to roll,pitch,yaw in radian
+        旋转矩阵转 RPY 欧拉角（弧度）
     """
     roll  = np.arctan2(R[2, 1], R[2, 2])
     pitch = np.arctan2(-R[2, 0], (np.sqrt(R[2, 1] ** 2 + R[2, 2] ** 2)))
@@ -75,14 +75,14 @@ def r2rpy(R,unit='rad'):
 
 def r2quat(R):
     """ 
-        Convert Rotation Matrix to Quaternion.  See rotation.py for notes 
+        旋转矩阵转四元数  See rotation.py for notes 
         (https://gist.github.com/machinaut/dab261b78ac19641e91c6490fb9faa96)
     """
     R = np.asarray(R, dtype=np.float64)
     Qxx, Qyx, Qzx = R[..., 0, 0], R[..., 0, 1], R[..., 0, 2]
     Qxy, Qyy, Qzy = R[..., 1, 0], R[..., 1, 1], R[..., 1, 2]
     Qxz, Qyz, Qzz = R[..., 2, 0], R[..., 2, 1], R[..., 2, 2]
-    # Fill only lower half of symmetric matrix
+    # 填充对称矩阵的下三角部分
     K = np.zeros(R.shape[:-2] + (4, 4), dtype=np.float64)
     K[..., 0, 0] = Qxx - Qyy - Qzz
     K[..., 1, 0] = Qyx + Qxy
@@ -95,16 +95,16 @@ def r2quat(R):
     K[..., 3, 2] = Qxy - Qyx
     K[..., 3, 3] = Qxx + Qyy + Qzz
     K /= 3.0
-    # TODO: vectorize this -- probably could be made faster
+    # TODO: 向量化可进一步提升速度
     q = np.empty(K.shape[:-2] + (4,))
     it = np.nditer(q[..., 0], flags=['multi_index'])
     while not it.finished:
-        # Use Hermitian eigenvectors, values for speed
+        # 使用 Hermitian 特征向量/值以加速
         vals, vecs = np.linalg.eigh(K[it.multi_index])
-        # Select largest eigenvector, reorder to w,x,y,z quaternion
+        # 选取最大特征向量，重排序为 w,x,y,z 四元数
         q[it.multi_index] = vecs[[3, 0, 1, 2], np.argmax(vals)]
-        # Prefer quaternion with positive w
-        # (q * -1 corresponds to same rotation as q)
+        # 优先选择 w 为正的四元数
+        # (q 与 -q 表示相同的旋转)
         if q[it.multi_index][0] < 0:
             q[it.multi_index] *= -1
         it.iternext()
@@ -112,9 +112,9 @@ def r2quat(R):
 
 def pr2t(p,R):
     """ 
-        Convert pose to transformation matrix 
+        位姿转齐次变换矩阵 
     """
-    p0 = p.ravel() # flatten
+    p0 = p.ravel()  # 展平为一维
     T = np.block([
         [R, p0[:, np.newaxis]],
         [np.zeros(3), 1]
@@ -123,7 +123,7 @@ def pr2t(p,R):
 
 def r2w(R):
     """
-        R to \omega
+        旋转矩阵转角速度
     """
     el = np.array([
             [R[2,1] - R[1,2]],
@@ -141,7 +141,7 @@ def r2w(R):
 
 def meters2xyz(depth_img,cam_matrix):
     """
-        Scaled depth image to pointcloud
+        缩放深度图转点云
     """
     fx = cam_matrix[0][0]
     cx = cam_matrix[0][2]
@@ -156,16 +156,16 @@ def meters2xyz(depth_img,cam_matrix):
     x_e = (indices[..., 1] - cx) * z_e / fx
     y_e = (indices[..., 0] - cy) * z_e / fy
     
-    # Order of y_ e is reversed !
+    # 注意 y 轴方向已反转
     xyz_img = np.stack([z_e, -x_e, -y_e], axis=-1) # [H x W x 3] 
-    return xyz_img # [H x W x 3]
+    return xyz_img  # 形状 [H x W x 3]
 
 def get_rotation_matrix_from_two_points(p_fr,p_to):
     """
-        Get rotation matrix from two points
+        根据两点计算旋转矩阵
     """
     p_a  = np.copy(np.array([1e-10,-1e-10,1.0]))
-    if np.linalg.norm(p_to-p_fr) < 1e-8: # if two points are too close
+    if np.linalg.norm(p_to-p_fr) < 1e-8:  # 两点距离过近时退化为单位阵
         return np.eye(3)
     p_b  = (p_to-p_fr)/np.linalg.norm(p_to-p_fr)
     v    = np.cross(p_a,p_b)
@@ -178,14 +178,14 @@ def get_rotation_matrix_from_two_points(p_fr,p_to):
 
 def skew(x):
     """ 
-        Get a skew-symmetric matrix
+        获取反对称矩阵
     """
     x_hat = np.array([[0,-x[2],x[1]],[x[2],0,-x[0]],[-x[1],x[0],0]])
     return x_hat
 
 def rodrigues(a=np.array([1,0,0]),q_rad=0.0):
     """
-        Compute the rotation matrix from an angular velocity vector
+        根据角速度向量计算旋转矩阵（Rodrigues 公式）
     """
     a_norm = np.linalg.norm(a)
     if abs(a_norm-1) > 1e-6:
@@ -201,14 +201,14 @@ def rodrigues(a=np.array([1,0,0]),q_rad=0.0):
 
 def R_yuzf2zuxf(R):
     """
-        Convert R of (Y-up z-front, e.g., CMU-MoCap) to (Z-up x-front)
+        将 Y-up Z-front 坐标系旋转矩阵转换为 Z-up X-front
     """
     R_offset = rpy2r(np.radians([-90,0,-90]))
     return R_offset@R
 
 def T_yuzf2zuxf(T):
     """
-        Convert R of (Y-up z-front, e.g., CMU-MoCap) to (Z-up x-front)
+        将 Y-up Z-front 坐标系旋转矩阵转换为 Z-up X-front
     """
     p,R = t2pr(T)
     T = pr2t(p=p,R=R_yuzf2zuxf(R))
@@ -224,18 +224,18 @@ def quat2r(q):
     
 def align_z_axis(R):
     """
-        Align z-axis of a rotation matrix R
+        将旋转矩阵的 z 轴对齐到世界 z 轴
     """
     q = r2quat(R)
     z_axis = R[:, 2]
     
-    # Compute the rotation axis and angle
+    # 计算旋转轴和角度
     rotation_axis = np.cross(z_axis, [0, 0, 1])
     rotation_axis_norm = np.linalg.norm(rotation_axis)
     
-    if rotation_axis_norm < 1e-15:  # z_axis is already [0,0,1] or [0,0,-1]
-        if z_axis[2] < 0:  # [0,0,-1] case
-            return R @ quat2r([0, 1, 0, 0])  # 180 degree rotation around x-axis
+    if rotation_axis_norm < 1e-15:  # z 轴已对齐 [0,0,1] 或 [0,0,-1]
+        if z_axis[2] < 0:  # [0,0,-1] 情形
+            return R @ quat2r([0, 1, 0, 0])  # 绕 x 轴旋转 180 度
         else:
             return R
     
@@ -243,10 +243,10 @@ def align_z_axis(R):
     cos_theta = np.dot(z_axis, [0, 0, 1])
     theta = np.arccos(np.clip(cos_theta, -1.0, 1.0))
     
-    # Compute the rotation quaternion
+    # 计算旋转四元数
     q_rot = np.array([np.cos(theta/2)] + list(np.sin(theta/2) * rotation_axis))
     
-    # Apply the rotation
+    # 应用旋转
     q_result = np.array([
         q_rot[0]*q[0] - q_rot[1]*q[1] - q_rot[2]*q[2] - q_rot[3]*q[3],
         q_rot[0]*q[1] + q_rot[1]*q[0] + q_rot[2]*q[3] - q_rot[3]*q[2],

@@ -5,24 +5,17 @@ from .utils import (
     get_idxs,
 )
 
-# Inverse kinematics helper
+# 逆运动学辅助函数
 def init_ik_info():
     """
-        Initialize IK information
-        Usage:
+        初始化 IK 信息
+        用法:
         ik_info = init_ik_info()
         ...
         add_ik_info(ik_info,body_name='BODY_NAME',p_trgt=P_TRGT,R_trgt=R_TRGT)
         ...
         for ik_tick in range(max_ik_tick):
-            dq,ik_err_stack = get_dq_from_ik_info(
-                env = env,
-                ik_info = ik_info,
-                stepsize = 1,
-                eps = 1e-2,
-                th = np.radians(10.0),
-                joint_idxs_jac = joint_idxs_jac,
-            )
+            dq,ik_err_stack = get_dq_from_ik_info(...)
             qpos = env.get_qpos()
             mujoco.mj_integratePos(env.model,qpos,dq,1)
             env.forward(q=qpos)
@@ -44,8 +37,8 @@ def add_ik_info(
         p_trgt    = None,
         R_trgt    = None,
     ):
-    """ 
-        Add IK information
+    """
+        添加 IK 目标信息
     """
     ik_info['body_names'].append(body_name)
     ik_info['geom_names'].append(geom_name)
@@ -62,7 +55,7 @@ def get_dq_from_ik_info(
         joint_idxs_jac = None,
     ):
     """
-        Get delta q from augmented Jacobian method
+        通过增广雅可比方法计算关节角增量 dq
     """
     J_list,ik_err_list = [],[]
     for ik_idx,(ik_body_name,ik_geom_name) in enumerate(zip(ik_info['body_names'],ik_info['geom_names'])):
@@ -84,13 +77,13 @@ def get_dq_from_ik_info(
     J_stack      = np.vstack(J_list)
     ik_err_stack = np.hstack(ik_err_list)
 
-    # Select Jacobian columns that are within the joints to use
+    # 选取指定关节对应的雅可比列
     if joint_idxs_jac is not None:
         J_stack_backup = J_stack.copy()
         J_stack = np.zeros_like(J_stack)
         J_stack[:,joint_idxs_jac] = J_stack_backup[:,joint_idxs_jac]
 
-    # Compute dq from damped least square
+    # 阻尼最小二乘法求解关节增量
     dq = env.damped_ls(J_stack,ik_err_stack,stepsize=stepsize,eps=eps,th=th)
     return dq,ik_err_stack
 
@@ -102,7 +95,7 @@ def plot_ik_info(
         sphere_r   = 0.01,
         ):
     """
-        Plot IK information
+        绘制 IK 目标信息
     """
     colors = get_colors(cmap_name='gist_rainbow',n_color=ik_info['n_trgt'])
     for ik_idx,(ik_body_name,ik_geom_name) in enumerate(zip(ik_info['body_names'],ik_info['geom_names'])):
@@ -113,7 +106,7 @@ def plot_ik_info(
         IK_R = ik_R_trgt is not None
 
         if ik_body_name is not None:
-            # Plot current 
+            # 绘制当前位姿
             env.plot_body_T(
                 body_name   = ik_body_name,
                 plot_axis   = IK_R,
@@ -122,20 +115,20 @@ def plot_ik_info(
                 plot_sphere = IK_P,
                 sphere_r    = sphere_r,
                 sphere_rgba = color,
-                label       = '' # ''/ik_body_name
+                label       = '' # 留空或填入 body 名称
             )
-            # Plot target
+            # 绘制目标位姿
             if IK_P:
-                env.plot_sphere(p=ik_p_trgt,r=sphere_r,rgba=color,label='') 
+                env.plot_sphere(p=ik_p_trgt,r=sphere_r,rgba=color,label='')
                 env.plot_line_fr2to(p_fr=env.get_p_body(body_name=ik_body_name),p_to=ik_p_trgt,rgba=color)
             if IK_P and IK_R:
                 env.plot_T(p=ik_p_trgt,R=ik_R_trgt,plot_axis=True,axis_len=axis_len,axis_width=axis_width)
-            if not IK_P and IK_R: # rotation only
+            if not IK_P and IK_R: # 仅旋转
                 p_curr = env.get_p_body(body_name=ik_body_name)
                 env.plot_T(p=p_curr,R=ik_R_trgt,plot_axis=True,axis_len=axis_len,axis_width=axis_width)
-            
+
         if ik_geom_name is not None:
-            # Plot current 
+            # 绘制当前几何体
             env.plot_geom_T(
                 geom_name   = ik_geom_name,
                 plot_axis   = IK_R,
@@ -144,15 +137,15 @@ def plot_ik_info(
                 plot_sphere = IK_P,
                 sphere_r    = sphere_r,
                 sphere_rgba = color,
-                label       = '' # ''/ik_geom_name
+                label       = '' # 留空或填入 geom 名称
             )
-            # Plot target
+            # 绘制目标位姿
             if IK_P:
-                env.plot_sphere(p=ik_p_trgt,r=sphere_r,rgba=color,label='') 
+                env.plot_sphere(p=ik_p_trgt,r=sphere_r,rgba=color,label='')
                 env.plot_line_fr2to(p_fr=env.get_p_geom(geom_name=ik_geom_name),p_to=ik_p_trgt,rgba=color)
             if IK_P and IK_R:
                 env.plot_T(p=ik_p_trgt,R=ik_R_trgt,plot_axis=True,axis_len=axis_len,axis_width=axis_width)
-            if not IK_P and IK_R: # rotation only
+            if not IK_P and IK_R: # 仅旋转
                 p_curr = env.get_p_geom(geom_name=ik_geom_name)
                 env.plot_T(p=p_curr,R=ik_R_trgt,plot_axis=True,axis_len=axis_len,axis_width=axis_width)
 
@@ -175,35 +168,35 @@ def solve_ik(
         render          = False,
         render_every    = 1,
     ):
-    """ 
-        Solve Inverse Kinematics
     """
-    # Reset
+        求解逆运动学
+    """
+    # 可选重置环境
     if reset_env:
         env.reset()
     if render:
         env.init_viewer()
-    # Joint indices
+    # 获取关节索引
     joint_idxs_jac = env.get_idxs_jac(joint_names=joint_names_for_ik)
     joint_idxs_fwd = env.get_idxs_fwd(joint_names=joint_names_for_ik)
-    # Joint range
+    # 获取关节限位
     q_mins = env.joint_ranges[get_idxs(env.joint_names,joint_names_for_ik),0]
     q_maxs = env.joint_ranges[get_idxs(env.joint_names,joint_names_for_ik),1]
-    # Store MuJoCo state
+    # 备份 MuJoCo 状态
     if restore_state:
         env.store_state()
-    # Initial IK pose
+    # 设置 IK 初始位姿
     if q_init is not None:
         env.forward(q=q_init,joint_idxs=joint_idxs_fwd,increase_tick=False)
-    # Initialize IK information
+    # 初始化 IK 目标
     ik_info = init_ik_info()
     add_ik_info(
         ik_info  = ik_info,
         body_name= body_name_trgt,
         p_trgt   = p_trgt,
-        R_trgt   = R_trgt, 
+        R_trgt   = R_trgt,
     )
-    # Loop
+    # 迭代求解
     q_curr = env.get_qpos_joints(joint_names=joint_names_for_ik)
     for ik_tick in range(max_ik_tick):
         dq,ik_err_stack = get_dq_from_ik_info(
@@ -214,28 +207,28 @@ def solve_ik(
             th             = ik_th,
             joint_idxs_jac = joint_idxs_jac,
         )
-        q_curr = q_curr + dq[joint_idxs_jac] # update
-        q_curr = np.clip(q_curr,q_mins,q_maxs) # clip
-        env.forward(q=q_curr,joint_idxs=joint_idxs_fwd,increase_tick=False) # fk
-        ik_err = np.linalg.norm(ik_err_stack) # IK error
-        if ik_err < ik_err_th: break # terminate condition
+        q_curr = q_curr + dq[joint_idxs_jac] # 更新关节角
+        q_curr = np.clip(q_curr,q_mins,q_maxs) # 裁剪至关节限位
+        env.forward(q=q_curr,joint_idxs=joint_idxs_fwd,increase_tick=False) # 正运动学
+        ik_err = np.linalg.norm(ik_err_stack) # IK 误差
+        if ik_err < ik_err_th: break # 收敛判定
         if verbose:
             print ("[%d/%d] ik_err:[%.3f]"%(ik_tick,max_ik_tick,ik_err))
         if render:
             if ik_tick%render_every==0:
                 plot_ik_info(env,ik_info)
                 env.render()
-    # Print if IK error is too high
+    # IK 误差过高警告
     if verbose_warning and ik_err > ik_err_th:
-        print ("ik_err:[%.4f] is higher than ik_err_th:[%.4f]."%
+        print ("ik_err:[%.4f] 高于阈值 ik_err_th:[%.4f]."%
                (ik_err,ik_err_th))
-        print ("You may want to increase max_ik_tick:[%d]"%
+        print ("可尝试增大 max_ik_tick:[%d]"%
                (max_ik_tick))
-    # Restore backuped state
+    # 恢复备份状态
     if restore_state:
         env.restore_state()
-    # Close viewer
+    # 关闭渲染窗口
     if render:
         env.close_viewer()
-    # Return
+    # 返回结果
     return q_curr,ik_err_stack,ik_info

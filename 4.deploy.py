@@ -17,12 +17,10 @@ features = dataset_to_policy_features(dataset_metadata.features)
 output_features = {key: ft for key, ft in features.items() if ft.type is FeatureType.ACTION}
 input_features = {key: ft for key, ft in features.items() if key not in output_features}
 input_features.pop("observation.wrist_image")
-# Policies are initialized with a configuration class, in this case `DiffusionConfig`. For this example,
-# we'll just use the defaults and so no arguments other than input/output features need to be passed.
-# Temporal ensemble to make smoother trajectory predictions
+# 使用时间集成 (temporal ensemble) 平滑轨迹预测
 cfg = ACTConfig(input_features=input_features, output_features=output_features, chunk_size= 10, n_action_steps=1, temporal_ensemble_coeff = 0.9)
 delta_timestamps = resolve_delta_timestamps(cfg, dataset_metadata)
-# We can now instantiate our policy with this config and the dataset stats.
+# 从预训练检查点加载策略
 policy = ACTPolicy.from_pretrained('./ckpt/act_y', config = cfg, dataset_stats=dataset_metadata.stats)
 policy.to(device)
 
@@ -31,7 +29,7 @@ xml_path = './model/demo_scene.xml'
 PnPEnv = SimpleEnv(xml_path, action_type='joint_angle')
 
 step = 0
-PnPEnv.reset(seed=0)
+PnPEnv.reset()
 policy.reset()
 policy.eval()
 save_image = True
@@ -39,18 +37,18 @@ img_transform = torchvision.transforms.ToTensor()
 while PnPEnv.env.is_viewer_alive():
     PnPEnv.step_env()
     if PnPEnv.env.loop_every(HZ=20):
-        # Check if the task is completed
+        # 检查任务是否完成
         success = PnPEnv.check_success()
         if success:
             print('Success')
-            # Reset the environment and action queue
+            # 重置环境和动作队列
             policy.reset()
-            PnPEnv.reset(seed=0)
+            PnPEnv.reset()
             step = 0
             save_image = False
-        # Get the current state of the environment
+        # 获取环境当前状态
         state = PnPEnv.get_ee_pose()
-        # Get the current image from the environment
+        # 获取环境当前图像
         image, wirst_image = PnPEnv.grab_image()
         image = Image.fromarray(image)
         image = image.resize((256, 256))
@@ -65,10 +63,10 @@ while PnPEnv.env.is_viewer_alive():
             'task': ['Put mug cup on the plate'],
             'timestamp': torch.tensor([step/20]).to(device)
         }
-        # Select an action
+        # 策略推理选择动作
         action = policy.select_action(data)
         action = action[0].cpu().detach().numpy()
-        # Take a step in the environment
+        # 在仿真环境中执行动作
         _ = PnPEnv.step(action)
         PnPEnv.render()
         step += 1
@@ -76,7 +74,6 @@ while PnPEnv.env.is_viewer_alive():
         if success:
             print('Success')
             break
-
 
 
 

@@ -47,10 +47,10 @@ class MinimalCallbacks:
         self._run_speed                  = 1.0
         self._loop_count                 = 0
         self._advance_by_one_step        = False
-        # Keyboard 
+        # 键盘按键
         self._key_pressed                = None
         self._is_key_pressed             = False
-        # Keyboard buffer
+        # 键盘按键buffer
         self._key_pressed_set            = set()
         self._key_repeated_set           = set()
         
@@ -59,34 +59,34 @@ class MinimalCallbacks:
             Key callback        
         """
 
-        # Flags for key pressed 
+        # 按键标志 
         is_key_pressed  = (action==glfw.PRESS)
         is_key_released = (action==glfw.RELEASE)
         is_key_repeated = (action==glfw.REPEAT)
         
-        # Add and discard keys
+        # 添加和移除按键
         if is_key_pressed:
             self._key_pressed_set.add(key)
         if is_key_repeated:
             self._key_repeated_set.add(key)
         if is_key_released:
-            # Remove from pressed and repeated lists (if present)
+            # 从按下和重复列表中移除
             self._key_pressed_set.discard(key)
             self._key_repeated_set.discard(key)
         
-        # Pause / resume handling (space)
-        # if is_key_pressed and (key==glfw.KEY_SPACE) and (self._paused is not None):
-        #     self._paused = not self._paused
+        # 暂停/继续（空格键）
+        # if is_key_pressed and (key==glfw.KEY_SPACE) and (self._paused is not None):  # 空格暂停/继续
+        #     self._paused = not self._paused  # 切换暂停状态
 
-        # Quit (escape)
+        # 退出（ESC 键）
         if (key==glfw.KEY_ESCAPE):
             glfw.set_window_should_close(self.window, True)
 
-        # Store key pressed (legacy)
+        # 存储按下的按键（旧版）
         self._key_pressed    = key 
         self._is_key_pressed = True
         
-        # Return
+        # 返回
         return
 
     def _cursor_pos_callback(self, window, xpos, ypos):
@@ -137,7 +137,7 @@ class MinimalCallbacks:
         self._last_mouse_x = int(self._scale * x)
         self._last_mouse_y = int(self._scale * y)
 
-        # detect a left- or right- doubleclick
+        # 检测左键或右键双击
         self._left_double_click_pressed = False
         self._right_double_click_pressed = False
         time_now = glfw.get_time()
@@ -160,22 +160,22 @@ class MinimalCallbacks:
                 self._right_double_click_pressed = True
             self._last_right_click_time = time_now
 
-        # set perturbation
+        # 设置扰动
         key = mods == glfw.MOD_CONTROL
         newperturb = 0
         if key and self.pert.select > 0:
-            # right: translate, left: rotate
+            # 右键：平移，左键：旋转
             if self._button_right_pressed:
                 newperturb = mujoco.mjtPertBit.mjPERT_TRANSLATE
             if self._button_left_pressed:
                 newperturb = mujoco.mjtPertBit.mjPERT_ROTATE
 
-            # perturbation onste: reset reference
+            # 扰动起始：重置参考
             if newperturb and not self.pert.active:
                 mujoco.mjv_initPerturb(
                     self.model, self.data, self.scn, self.pert)
         self.pert.active = newperturb
-        # 3D release
+        # 3D 释放
         if act == glfw.RELEASE:
             self.pert.active = 0
 
@@ -209,13 +209,13 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
             raise NotImplementedError(
                 "Invalid mode. Only 'window' is supported.")
 
-        # keep true while running
+        # 运行时保持 True
         self.is_alive = True
 
         self.CONFIG_PATH = pathlib.Path.joinpath(
             pathlib.Path.home(), ".config/mujoco_viewer/config.yaml")
 
-        # glfw init
+        # GLFW 初始化
         glfw.init()
 
         if not width:
@@ -227,7 +227,7 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
         if self.render_mode == 'offscreen':
             glfw.window_hint(glfw.VISIBLE, 0)
 
-        # Create window
+        # 创建窗口
         self.maxgeom = maxgeom
         self.window = glfw.create_window(
             width, height, title, None, None)
@@ -237,12 +237,12 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
         framebuffer_width, framebuffer_height = glfw.get_framebuffer_size(
             self.window)
 
-        # install callbacks only for 'window' mode
+        # 仅在窗口模式下安装回调
         if self.render_mode == 'window':
             window_width, _ = glfw.get_window_size(self.window)
             self._scale = framebuffer_width * 1.0 / window_width
 
-            # set callbacks
+            # 设置回调
             glfw.set_cursor_pos_callback(
                 self.window, self._cursor_pos_callback)
             glfw.set_mouse_button_callback(
@@ -250,7 +250,7 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
             glfw.set_scroll_callback(self.window, self._scroll_callback)
             glfw.set_key_callback(self.window, self._key_callback)
 
-        # create options, camera, scene, context
+        # 创建选项、相机、场景、上下文
         self.vopt = mujoco.MjvOption()
         self.cam  = mujoco.MjvCamera()
         self.scn  = mujoco.MjvScene(self.model, maxgeom=self.maxgeom)
@@ -261,7 +261,7 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
 
         width, height = glfw.get_framebuffer_size(self.window)
         
-        # figures
+        # 图表
         self.n_fig = n_fig
         self.figs  = []
         for idx in range(self.n_fig):
@@ -272,25 +272,25 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
             fig.panergba   = (1,1,1,0.2)
             self.figs.append(fig)
 
-        # get viewport
+        # 获取视口
         self.viewport = mujoco.MjrRect(
             0, 0, framebuffer_width, framebuffer_height)
 
-        # overlay, markers
+        # 叠加层和标记
         self._overlay = {}
         self._markers = []
         
-        # rgb image to overlay (legacy)
+        # RGB 图像叠加（旧版）
         self.use_rgb_overlay = use_rgb_overlay
         self.loc_rgb_overlay = loc_rgb_overlay
 
-        # rgb images to overlay
+        # RGB 图像叠加
         self.rgb_overlay_top_right    = None
         self.rgb_overlay_top_left     = None
         self.rgb_overlay_bottom_right = None
         self.rgb_overlay_bottom_left  = None        
         
-        # Perturbation
+        # 扰动
         self.perturbation = perturbation
 
     def add_marker(self, **marker_params):
@@ -303,12 +303,12 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
                 self.scn.maxgeom)
 
         g = self.scn.geoms[self.scn.ngeom]
-        # default values.
+        # 默认值
         g.dataid = -1
         g.objtype = mujoco.mjtObj.mjOBJ_UNKNOWN
         g.objid = -1
         g.category = mujoco.mjtCatBit.mjCAT_DECOR
-        # g.matid = -1 # newly added (by Jihwan, 2025-02-27)
+        # g.matid = -1  # 新增字段（by Jihwan, 2025-02-27）
         """
             mujoco version 3.2 is NOT backward-compatible
         """
@@ -331,14 +331,14 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
         g.rgba[:]     = np.ones(4)
 
         for key, value in marker.items():
-            # setattr(g, key, value)
+            # 使用 setattr 动态赋值
             if isinstance(value, (int, float, mujoco._enums.mjtGeom)):
                 setattr(g, key, value)
             elif isinstance(value, (tuple, list, np.ndarray)):
                 attr = getattr(g, key)
                 attr[:] = np.asarray(value).reshape(attr.shape)
             elif isinstance(value, str):
-                # assert key == "label", "Only label is a string in mjtGeom."
+                # 断言 key == "label"，mjtGeom 中只有 label 是字符串
                 if value is None:
                     g.label[0] = 0
                 else:
@@ -350,7 +350,7 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
             else:
                 raise ValueError("mjtGeom doesn't have field %s" % key)
             
-        # Increment number of geoms
+        # 几何体计数递增
         self.scn.ngeom += 1
         return
 
@@ -373,7 +373,7 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
 
         self.viewport.width, self.viewport.height = glfw.get_framebuffer_size(
             self.window)
-        # update scene
+        # 更新场景
         mujoco.mjv_updateScene(
             self.model,
             self.data,
@@ -382,7 +382,7 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
             self.cam,
             mujoco.mjtCatBit.mjCAT_ALL.value,
             self.scn)
-        # render
+        # 渲染
         mujoco.mjr_render(self.viewport, self.scn, self.ctx)
         shape = glfw.get_framebuffer_size(self.window)
 
@@ -441,7 +441,7 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
         bottomleft  = mujoco.mjtGridPos.mjGRID_BOTTOMLEFT
         bottomright = mujoco.mjtGridPos.mjGRID_BOTTOMRIGHT
         
-        # self.add_overlay(
+        # self.add_overlay(  # 添加叠加示例
         #     gridpos = topleft,
         #     text1   = "A",
         #     text2   = "B",
@@ -473,7 +473,7 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
         fig = self.figs[fig_idx]
         fig.figurergba  = figurergba
         fig.panergba    = panergba
-        L = len(xdata) # this cannot exceed 'mujoco.mjMAXLINEPNT'
+        L = len(xdata)  # 不能超过 mujoco.mjMAXLINEPNT
         for i in range(L):
             fig.linedata[line_idx][2*i]   = xdata[i]
             fig.linedata[line_idx][2*i+1] = ydata[i]
@@ -483,28 +483,28 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
         
     def add_rgb_overlay(self,rgb_img_raw,fix_ratio=False):
         """
-            Set RGB image to render 
+            设置渲染的 RGB 图像 
         """
         width,height = glfw.get_framebuffer_size(self.window)
         rgb_h,rgb_w = height//4,width//4
         self.rgb_overlay = np.zeros((rgb_h,rgb_w,3))
         (h,w) = self.rgb_overlay.shape[:2]
-        if fix_ratio: # fix aspect ratio
+        if fix_ratio:  # 保持宽高比
             h_raw, w_raw = rgb_img_raw.shape[:2]
-            # Calculate scale to preserve aspect ratio
+            # 计算缩放比例以保持宽高比
             scale = min(w / w_raw, h / h_raw)
             new_w = int(w_raw * scale)
             new_h = int(h_raw * scale)
-            # Resize the image while preserving the aspect ratio
+            # 保持宽高比缩放图像
             resized_img = cv2.resize(rgb_img_raw, (new_w, new_h), interpolation=cv2.INTER_NEAREST)
-            # Create a black canvas with the target size
+            # 创建目标尺寸的黑色画布
             padded_img = np.zeros((h, w, 3), dtype=np.uint8)
-            # Calculate the top-left corner for centering the resized image
+            # 计算居中放置的左上角坐标
             x_offset = (w - new_w) // 2
             y_offset = (h - new_h) // 2
-            # Place the resized image onto the canvas
+            # 将缩放后的图像放置到画布上
             padded_img[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = resized_img
-            rgb_img_rsz = padded_img  # Final resized and padded image
+            rgb_img_rsz = padded_img  # 最终缩放并填充后的图像
         else:
             rgb_img_rsz = cv2.resize(rgb_img_raw,(w,h),interpolation=cv2.INTER_NEAREST)
         self.rgb_overlay = rgb_img_rsz
@@ -516,22 +516,22 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
         w_window,h_window = glfw.get_framebuffer_size(self.window)
         h_overlay,w_overlay = h_window//4,w_window//4
         rgb_overlay = np.zeros((h_overlay,w_overlay,3))
-        # Fix aspect ratio
+        # 保持宽高比
         h_raw,w_raw = rgb.shape[:2]
-        # Calculate scale to preserve aspect ratio
+        # 计算保持宽高比的缩放比例
         scale = min(w_overlay/w_raw,h_overlay/h_raw)
         w_new = int(w_raw*scale)
         h_new = int(h_raw*scale)
-        # Resize
+        # 缩放
         rgb_resized = cv2.resize(rgb,(w_new,h_new),interpolation=cv2.INTER_NEAREST)
-        # Create a black canvas with the target size
+        # 创建目标尺寸的黑色画布
         rgb_padded = np.zeros((h_overlay,w_overlay,3),dtype=np.uint8)
-        # Calculate the top-left corner for centering the resized image
+        # 计算居中偏移
         x_offset = (w_overlay-w_new) // 2
         y_offset = (h_overlay-h_new) // 2
-        # Place the resized image onto the canvas
+        # 将缩放图像放置到画布
         rgb_padded[y_offset:y_offset+h_new,x_offset:x_offset+w_new] = rgb_resized
-        # Store the RGB overlay
+        # 存储 RGB 叠加层
         if loc=='top right':
             self.rgb_overlay_top_right = rgb_padded
         elif loc=='top left':
@@ -570,19 +570,19 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
             self.close()
             return
 
-        # mjv_updateScene, mjr_render, mjr_overlay
+        # 核心渲染流程：更新场景 → 渲染 → 叠加
         def update():
             
-            # Fill overlay items
+            # 填充叠加项
             self._create_overlay()
             
-            # Render start
+            # 渲染开始
             render_start = time.time()
             width, height = glfw.get_framebuffer_size(self.window)
             self.viewport.width, self.viewport.height = width, height
 
             with self._gui_lock:
-                # update scene
+                # 更新场景
                 mujoco.mjv_updateScene(
                     self.model,
                     self.data,
@@ -591,13 +591,13 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
                     self.cam,
                     mujoco.mjtCatBit.mjCAT_ALL.value,
                     self.scn)
-                # marker items
+                # 标记元素
                 for marker in self._markers:
                     self._add_marker_to_scene(marker)
-                # render
+                # 渲染
                 mujoco.mjr_render(self.viewport, self.scn, self.ctx)
                 
-                # overlay items
+                # 叠加层元素
                 for gridpos, [t1, t2] in self._overlay.items():
                     mujoco.mjr_overlay(
                         mujoco.mjtFontScale.mjFONTSCALE_150,
@@ -607,17 +607,17 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
                         t2,
                         self.ctx)
                     
-                # handle figures
+                # 处理图表
                 for idx,fig in enumerate(self.figs):
                     width_adjustment = width % 4
                     x = int(3 * width / 4) + width_adjustment
                     y = idx * int(height / 4)
                     viewport = mujoco.MjrRect(
                         x, y, int(width / 4), int(height / 4))
-                    # Plot
+                    # 绘图
                     mujoco.mjr_figure(viewport, fig, self.ctx)
                     
-                # roverlay rgb images (legacy)
+                # 叠加 RGB 图像（旧版）
                 if self.use_rgb_overlay:
                     rgb_h,rgb_w = height//4,width//4
                     if self.loc_rgb_overlay == 'top right':
@@ -647,7 +647,7 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
                         con      = self.ctx,
                     )
 
-                # overlay rgb images
+                # 叠加 RGB 图像
                 if self.rgb_overlay_top_right is not None:
                     h_overlay,w_overlay = self.rgb_overlay_top_right.shape[:2]
                     viewport_rgb_top_right = mujoco.MjrRect(
@@ -705,7 +705,7 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
                         con      = self.ctx,
                     )
                 
-                # Double buffering
+                # 双缓冲
                 glfw.swap_buffers(self.window)
             glfw.poll_events()
             self._time_per_render = 0.9 * self._time_per_render + \
@@ -729,13 +729,13 @@ class MuJoCoMinimalViewer(MinimalCallbacks):
                 update()
                 self._loop_count -= 1
 
-        # clear markers
+        # 清除标记
         self._markers[:] = []
         
-        # clear overlay
+        # 清除叠加层
         self._overlay.clear()
 
-        # apply perturbation (should this come before mj_step?)
+        # 应用扰动（是否应在 mj_step 之前？）
         if self.perturbation:
             self.apply_perturbations()
 
@@ -766,28 +766,28 @@ class MuJoCoParserClass(object):
         self.assets       = assets
         self.verbose      = verbose
         
-        # Constants
+        # 常量
         self.tick              = 0
         self.render_tick       = 0
         self.use_mujoco_viewer = False
         
-        # Parse xml file
+        # 解析 XML 文件
         if (self.rel_xml_path is not None) or (self.xml_string is not None):
             self._parse_xml()
         if self.name is None:
             self.name = self.model_name 
 
-        # Tic-toc
+        # 计时器
         self.tt = TicTocClass(name='env:[%s]'%(self.name))
         
-        # Monitor size
+        # 显示器尺寸
         self.monitor_width,self.monitor_height = get_monitor_size()
             
-        # Print
+        # 打印信息
         if self.verbose:
             self.print_info()
             
-        # Reset
+        # 重置
         self.reset(step=True)
             
     def _parse_xml(self):
@@ -801,7 +801,7 @@ class MuJoCoParserClass(object):
         if self.xml_string is not None:
             self.model = mujoco.MjModel.from_xml_string(xml=self.xml_string,assets=self.assets)
             
-        # Parse xml model name
+        # 解析 XML 模型名称
         parsed_strings = [s for s in self.model.names.split(b'\x00') if s] 
         parsed_strings = [s.decode('utf-8') for s in parsed_strings]
         self.model_name = parsed_strings[0]
@@ -810,7 +810,7 @@ class MuJoCoParserClass(object):
         self.dt               = self.model.opt.timestep
         self.HZ               = int(1/self.dt)
         
-        # Integrator (https://mujoco.readthedocs.io/en/latest/APIreference/APItypes.html#mjtintegrator)
+        # 积分器类型 (https://mujoco.readthedocs.io/en/latest/APIreference/APItypes.html#mjtintegrator)
         self.integrator       = self.model.opt.integrator
         if self.integrator == mujoco.mjtIntegrator.mjINT_EULER:
             self.integrator_name = 'EULER'
@@ -823,22 +823,22 @@ class MuJoCoParserClass(object):
         else:
             self.integrator_name = 'UNKNOWN'
         
-        # State and action space
+        # 状态和动作空间
         self.n_qpos           = self.model.nq # number of states
         self.n_qvel           = self.model.nv # number of velocities (dimension of tangent space)
         self.n_qacc           = self.model.nv # number of accelerations (dimension of tangent space)
         
-        # Geometry
+        # 几何体
         self.n_geom           = self.model.ngeom # number of geometries
         self.geom_names       = [mujoco.mj_id2name(self.model,mujoco.mjtObj.mjOBJ_GEOM,geom_idx)
                                  for geom_idx in range(self.model.ngeom)]
         
-        # Mesh
+        # 网格
         self.n_mesh           = self.model.nmesh # number of meshes
         self.mesh_names       = [mujoco.mj_id2name(self.model,mujoco.mjtObj.mjOBJ_MESH,mesh_idx)
                                  for mesh_idx in range(self.model.nmesh)]
         
-        # Body
+        # 刚体
         self.n_body           = self.model.nbody # number of bodies
         self.body_names       = [mujoco.mj_id2name(self.model,mujoco.mjtObj.mjOBJ_BODY,body_idx)
                                  for body_idx in range(self.n_body)]
@@ -851,12 +851,12 @@ class MuJoCoParserClass(object):
             parent_body_name = self.body_names[parent_id]
             self.parent_body_names.append(parent_body_name)
             
-        # Degree of Freedom
+        # 自由度
         self.n_dof            = self.model.nv # degree of freedom (=number of columns of Jacobian)
         self.dof_names        = [mujoco.mj_id2name(self.model,mujoco.mjtObj.mjOBJ_DOF,dof_idx)
                                  for dof_idx in range(self.n_dof)]
         
-        # Joint
+        # 关节
         self.n_joint          = self.model.njnt # number of joints 
         self.joint_names      = [mujoco.mj_id2name(self.model,mujoco.mjtObj.mjOBJ_JOINT,joint_idx)
                                  for joint_idx in range(self.n_joint)]
@@ -865,12 +865,12 @@ class MuJoCoParserClass(object):
         self.joint_mins       = self.joint_ranges[:,0]
         self.joint_maxs       = self.joint_ranges[:,1]
         
-        # Free joint
+        # 自由关节
         self.free_joint_idxs  = np.where(self.joint_types==mujoco.mjtJoint.mjJNT_FREE)[0].astype(np.int32)
         self.free_joint_names = [self.joint_names[joint_idx] for joint_idx in self.free_joint_idxs]
         self.n_free_joint     = len(self.free_joint_idxs)
 
-        # Revolute Joint
+        # 旋转关节
         self.rev_joint_idxs   = np.where(self.joint_types==mujoco.mjtJoint.mjJNT_HINGE)[0].astype(np.int32)
         self.rev_joint_names  = [self.joint_names[joint_idx] for joint_idx in self.rev_joint_idxs]
         self.n_rev_joint      = len(self.rev_joint_idxs)
@@ -878,7 +878,7 @@ class MuJoCoParserClass(object):
         self.rev_joint_maxs   = self.joint_ranges[self.rev_joint_idxs,1]
         self.rev_joint_ranges = self.rev_joint_maxs - self.rev_joint_mins
         
-        # Prismatic Joint
+        # 平移关节
         self.pri_joint_idxs   = np.where(self.joint_types==mujoco.mjtJoint.mjJNT_SLIDE)[0].astype(np.int32)
         self.pri_joint_names  = [self.joint_names[joint_idx] for joint_idx in self.pri_joint_idxs]
         self.n_pri_joint      = len(self.pri_joint_idxs)
@@ -886,7 +886,7 @@ class MuJoCoParserClass(object):
         self.pri_joint_maxs   = self.joint_ranges[self.pri_joint_idxs,1]
         self.pri_joint_ranges = self.pri_joint_maxs - self.pri_joint_mins
 
-        # Revolute + Prismatic Joint Information
+        # 旋转+平移关节汇总
         self.n_rev_pri_joint      = self.n_rev_joint + self.n_pri_joint
         self.rev_pri_joint_idxs   = np.concatenate([self.rev_joint_idxs,self.pri_joint_idxs])
         self.rev_pri_joint_names  = self.rev_joint_names + self.pri_joint_names
@@ -894,7 +894,7 @@ class MuJoCoParserClass(object):
         self.rev_pri_joint_maxs   = np.concatenate([self.rev_joint_maxs,self.pri_joint_maxs])
         self.rev_pri_joint_ranges = self.rev_pri_joint_maxs - self.rev_pri_joint_mins
         
-        # Controls
+        # 控制
         self.n_ctrl           = self.model.nu # number of actuators (or controls)
         self.ctrl_names       = [mujoco.mj_id2name(self.model,mujoco.mjtObj.mjOBJ_ACTUATOR,ctrl_idx) 
                                  for ctrl_idx in range(self.n_ctrl)]
@@ -903,7 +903,7 @@ class MuJoCoParserClass(object):
         self.ctrl_maxs        = self.ctrl_ranges[:,1]
         self.ctrl_gears       = self.model.actuator_gear[:,0] # gears
         
-        # Cameras
+        # 相机
         self.n_cam            = self.model.ncam
         self.cam_names        = [mujoco.mj_id2name(self.model,mujoco.mjtObj.mjOBJ_CAMERA,cam_idx) 
                                  for cam_idx in range(self.n_cam)]
@@ -917,14 +917,14 @@ class MuJoCoParserClass(object):
             cam.type       = mujoco.mjtCamera.mjCAMERA_FIXED
             cam_fov        = self.model.cam_fovy[cam_idx]
             viewport       = mujoco.MjrRect(0,0,800,600) # SVGA?
-            # Append
+            # 追加
             self.cams.append(cam)
             self.cam_fovs.append(cam_fov)
             self.cam_viewports.append(viewport)
             
-        # qpos and qvel indices attached to the controls
+        # 与控制关联的 qpos 和 qvel 索引
         """ 
-        # Usage
+        # 用法示例
         self.env.data.qpos[self.env.ctrl_qpos_idxs] # joint position
         self.env.data.qvel[self.env.ctrl_qvel_idxs] # joint velocity
         """
@@ -935,16 +935,16 @@ class MuJoCoParserClass(object):
         self.ctrl_qvel_idxs = []
         self.ctrl_types = []
         for ctrl_idx in range(self.n_ctrl):
-            # transmission (joint) index attached to an actuator, we assume that there is just one joint attached
+            # 获取执行器关联的传动（关节）索引，此处假设每个执行器仅关联一个关节
             joint_idx = self.model.actuator(self.ctrl_names[ctrl_idx]).trnid[0] 
-            # joint position attached to control
+            # 与控制关联的关节位置
             self.ctrl_qpos_idxs.append(self.model.jnt_qposadr[joint_idx])
             self.ctrl_qpos_names.append(self.joint_names[joint_idx])
             self.ctrl_qpos_mins.append(self.joint_ranges[joint_idx,0])
             self.ctrl_qpos_maxs.append(self.joint_ranges[joint_idx,1])
-            # joint velocity attached to control
+            # 与控制关联的关节速度
             self.ctrl_qvel_idxs.append(self.model.jnt_dofadr[joint_idx])
-            # Check types
+            # 检查类型
             trntype = self.model.actuator_trntype[ctrl_idx]
             if trntype == mujoco.mjtTrn.mjTRN_JOINT:
                 self.ctrl_types.append('JOINT')
@@ -953,12 +953,12 @@ class MuJoCoParserClass(object):
             else:
                 self.ctrl_types.append('UNKNOWN(trntype=%d)'%(trntype))
                 
-        # Sensor
+        # 传感器
         self.n_sensor         = self.model.nsensor
         self.sensor_names     = [mujoco.mj_id2name(self.model,mujoco.mjtObj.mjOBJ_SENSOR,sensor_idx)
                                  for sensor_idx in range(self.n_sensor)]
         
-        # Site
+        # 站点
         self.n_site           = self.model.nsite
         self.site_names       = [mujoco.mj_id2name(self.model,mujoco.mjtObj.mjOBJ_SITE,site_idx)
                                  for site_idx in range(self.n_site)]
@@ -993,8 +993,8 @@ class MuJoCoParserClass(object):
         for joint_idx,joint_name in enumerate(self.joint_names):
             print (" [%d/%d] [%s] axis:%s"%
                    (joint_idx,self.n_joint,joint_name,self.model.joint(joint_idx).axis))
-        # print ("joint_types:[%s]"%(self.joint_types))
-        # print ("joint_ranges:[%s]"%(self.joint_ranges))
+        # print ("joint_types:[%s]"%(self.joint_types))  # 调试打印
+        # print ("joint_ranges:[%s]"%(self.joint_ranges))  # 调试打印
 
         print ("")
         print ("n_dof:[%d] (=number of rows of Jacobian)"%(self.n_dof))
@@ -1043,14 +1043,14 @@ class MuJoCoParserClass(object):
             Print body and joint information (with more details)
         """
         from termcolor import colored
-        # Summarize kinematic chain information
+        # 汇总运动链信息
         JOINT_TYPE_MAP = {
             mujoco.mjtJoint.mjJNT_FREE: 'free',
             mujoco.mjtJoint.mjJNT_HINGE: 'revolute',
             mujoco.mjtJoint.mjJNT_SLIDE: 'prismatic',
         }
         for body_idx in range(self.n_body):
-            # Parse body information
+            # 解析刚体信息
             body_name = self.body_names[body_idx] # body name
             body = self.model.body(body_name) # mujoco body object
             parent_body_name = self.body_names[body.parentid[0]]
@@ -1061,7 +1061,7 @@ class MuJoCoParserClass(object):
             print (" body p_offset:[%.2f,%.2f,%.2f] quat_offset:[%.2f,%.2f,%.2f,%.2f]"%
                 (p_body_offset[0],p_body_offset[1],p_body_offset[2],
                     quat_body_offset[0],quat_body_offset[1],quat_body_offset[2],quat_body_offset[3]))
-            # Parse joint information
+            # 解析关节信息
             n_joint = body.jntnum # number of attached joints 
             if n_joint == 0: # fixed joint
                 print (" n_joint:[0] (%s)"%(colored('this body has no joint','blue')))
@@ -1085,24 +1085,24 @@ class MuJoCoParserClass(object):
             Reset
         """
         time.sleep(1e-3) # add some sleep?
-        mujoco.mj_resetData(self.model,self.data) # reset data
+        mujoco.mj_resetData(self.model,self.data) # 重置数据
         
         if step:
             mujoco.mj_step(self.model,self.data)
-            # mujoco.mj_forward(self.model,self.data) # forward <= is this necessary?
+            # mujoco.mj_forward(self.model,self.data) # 正运动学 <= 是否必要？
         
-        # Reset ticks
+        # 重置时钟
         self.tick        = 0
         self.render_tick = 0
-        # Reset wall time
+        # 重置墙上时间
         self.init_sim_time    = self.data.time
         self.init_wall_time   = time.time()
         self.accum_wall_time  = 0.0  # 누적 wall 시간
         self.last_wall_update = time.time()
-        # Others
+        # 其他
         self.xyz_left_double_click = None 
         self.xyz_right_double_click = None 
-        # Print
+        # 打印信息
         if self.verbose: print ("env:[%s] reset"%(self.name))
         
     def init_viewer(
@@ -1177,7 +1177,7 @@ class MuJoCoParserClass(object):
         self.use_mujoco_viewer = True
         if title is None: title = self.name
         
-        # Fullscreen (this overrides 'width' and 'height')
+        # 全屏模式（覆盖宽高设置）
         w_monitor,h_monitor = get_monitor_size()
         if fullscreen:
             width,height = w_monitor,h_monitor
@@ -1203,7 +1203,7 @@ class MuJoCoParserClass(object):
         )
         self.viewer.ctx = mujoco.MjrContext(self.model,fontscale)
         
-        # Set viewer
+        # 设置视角
         self.set_viewer(
             azimuth       = azimuth,
             distance      = distance,
@@ -1229,7 +1229,7 @@ class MuJoCoParserClass(object):
             update        = update,
         )
         if pre_render: self.render()
-        # Print
+        # 打印信息
         if self.verbose: print ("env:[%s] initalize viewer"%(self.name))
         
     def set_viewer(
@@ -1282,36 +1282,36 @@ class MuJoCoParserClass(object):
         Returns:
             None
         """
-        # Basic viewer setting (azimuth, distance, elevation, and lookat)
+        # 基础视角设置（方位角、距离、仰角、注视点）
         if azimuth is not None: self.viewer.cam.azimuth = azimuth
         if distance is not None: self.viewer.cam.distance = distance
         if elevation is not None: self.viewer.cam.elevation = elevation
         if lookat is not None: self.viewer.cam.lookat = lookat
-        # Make dynamic geoms more transparent
+        # 使动态几何体更透明
         if transparent is not None: 
             self.viewer.vopt.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = transparent
-        # Contact point
+        # 接触点
         if contactpoint is not None: self.viewer.vopt.flags[mujoco.mjtVisFlag.mjVIS_CONTACTPOINT] = contactpoint
         if contactwidth is not None: self.model.vis.scale.contactwidth = contactwidth
         if contactheight is not None: self.model.vis.scale.contactheight = contactheight
         if contactrgba is not None: self.model.vis.rgba.contactpoint = contactrgba
-        # Joint
+        # 关节
         if joint is not None: self.viewer.vopt.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = joint
         if jointlength is not None: self.model.vis.scale.jointlength = jointlength
         if jointwidth is not None: self.model.vis.scale.jointwidth = jointwidth
         if jointrgba is not None: self.model.vis.rgba.joint = jointrgba
-        # Geom group
+        # 几何体组
         if geomgroup_0 is not None: self.viewer.vopt.geomgroup[0] = geomgroup_0
         if geomgroup_1 is not None: self.viewer.vopt.geomgroup[1] = geomgroup_1
         if geomgroup_2 is not None: self.viewer.vopt.geomgroup[2] = geomgroup_2
         if geomgroup_3 is not None: self.viewer.vopt.geomgroup[3] = geomgroup_3
         if geomgroup_4 is not None: self.viewer.vopt.geomgroup[4] = geomgroup_4
         if geomgroup_5 is not None: self.viewer.vopt.geomgroup[5] = geomgroup_5
-        # Skybox
+        # 天空盒
         if black_sky is not None: self.viewer.scn.flags[mujoco.mjtRndFlag.mjRND_SKYBOX] = not black_sky
-        # Convex hull
+        # 凸包
         if convex_hull is not None: self.viewer.vopt.flags[mujoco.mjtVisFlag.mjVIS_CONVEXHULL] = convex_hull
-        # Render to update settings
+        # 渲染以更新设置
         if update:
             mujoco.mj_forward(self.model,self.data) 
             mujoco.mjv_updateScene(
@@ -1408,7 +1408,7 @@ class MuJoCoParserClass(object):
         Returns:
             bool: True if the loop should execute, False otherwise.
         """
-        # tick = int(self.get_sim_time()/self.dt)
+        # tick = int(self.get_sim_time()/self.dt)  # 基于仿真时间计算时钟
         FLAG = False
         if HZ is not None:
             FLAG = (self.tick-1)%(int(1/self.dt/HZ))==0
@@ -1442,21 +1442,21 @@ class MuJoCoParserClass(object):
         """
         if step_flag:
             if ctrl is not None:
-                if ctrl_names is not None: # when given 'ctrl_names' explicitly
+                if ctrl_names is not None: # 显式传入 ctrl_names 时
                     ctrl_idxs = get_idxs(self.ctrl_names,ctrl_names)
-                elif joint_names is not None: # when given 'joint_names' explicitly
+                elif joint_names is not None: # 显式传入 joint_names 时
                     ctrl_idxs = self.get_idxs_step(joint_names=joint_names)            
-                # Apply control
+                # 施加控制
                 if ctrl_idxs is None: 
                     self.data.ctrl[:] = ctrl
                 else: 
                     self.data.ctrl[ctrl_idxs] = ctrl
             mujoco.mj_step(self.model,self.data,nstep=nstep)
         
-        # Update wall time (conditioned on 'step_flag')
+        # 更新 wall time (conditioned on 'step_flag')
         self.increase_wall_time(step_flag=step_flag)
 
-        # Increase tick
+        # 时钟递增
         if increase_tick: self.increase_tick()
 
     def forward(self,q=None,joint_idxs=None,joint_names=None,increase_tick=True):
@@ -1473,7 +1473,7 @@ class MuJoCoParserClass(object):
             None
         """
         if q is not None:
-            if joint_names is not None: # if 'joint_names' is not None, it override 'joint_idxs'
+            if joint_names is not None: # 若传入了 joint_names 则覆盖 joint_idxs
                 joint_idxs = self.get_idxs_fwd(joint_names=joint_names)
             if joint_idxs is not None: 
                 self.data.qpos[joint_idxs] = q
@@ -1484,17 +1484,17 @@ class MuJoCoParserClass(object):
 
     def increase_wall_time(self,step_flag=True):
         """
-        Increment the accumulated wall time.
+        累加墙上时间
         """
         current_wall_time = time.time()
         if step_flag:
-            # Increment wall time only when 'step_flag' is True
+            # 仅在 step_flag 为 True 时累加墙上时间
             self.accum_wall_time += current_wall_time - self.last_wall_update
         self.last_wall_update = current_wall_time
 
     def increase_tick(self):
         """
-        Increment the simulation tick counter.
+        仿真时钟递增
         
         Returns:
             None
@@ -1581,7 +1581,7 @@ class MuJoCoParserClass(object):
         if qvel is not None: self.data.qvel = qvel.copy()
         if act is not None: self.data.act = act.copy()
         if ctrl is not None: self.data.ctrl = ctrl.copy()
-        # Forward dynamics
+        # 前向动力学
         if step: 
             mujoco.mj_step(self.model,self.data)
             
@@ -1597,15 +1597,15 @@ class MuJoCoParserClass(object):
         """
         if qacc is None:
             qacc = np.zeros(self.n_qacc)
-        # Set desired qacc
+        # 设置期望的关节加速度
         self.data.qacc = qacc.copy()
-        # Store state
+        # 备份状态
         self.store_state()
-        # Solve inverse dynamics
+        # 求解逆动力学
         mujoco.mj_inverse(self.model,self.data)
-        # Restore state
+        # 恢复状态
         self.restore_state()
-        # Return  
+        # 返回  
         """
             Output is 'qfrc_inverse'
             This is the force that must have acted on the system in order to achieve the observed acceleration 'mjData.qacc'.
@@ -1659,7 +1659,7 @@ class MuJoCoParserClass(object):
         Returns:
             None
         """
-        if T is not None: # if T is not None, it overrides p and R
+        if T is not None: # 若传入了 T 则覆盖 p 和 R
             p = t2p(T)
             R = t2r(T)
         self.set_p_base_body(body_name=body_name,p=p)
@@ -1678,7 +1678,7 @@ class MuJoCoParserClass(object):
         Returns:
             None
         """
-        if T is not None: # if T is not None, it overrides p and R
+        if T is not None: # 若传入了 T 则覆盖 p 和 R
             p = t2p(T)
             R = t2r(T)
         self.set_p_base_body(body_name=body_name,p=p)
@@ -1744,7 +1744,7 @@ class MuJoCoParserClass(object):
         Returns:
             None
         """
-        if T is not None: # if T is not None, it overrides p and R
+        if T is not None: # 若传入了 T 则覆盖 p 和 R
             p = t2p(T)
             R = t2r(T)
         self.model.body(body_name).pos = p
@@ -1824,14 +1824,14 @@ class MuJoCoParserClass(object):
         if body_names_to_color is None: # default is to color all geometries
             body_names_to_color = self.body_names
         for idx,body_name in enumerate(body_names_to_color): # for all bodies
-            if body_name in body_names_to_exclude: # exclude specific bodies
+            if body_name in body_names_to_exclude: # 排除特定物体
                 continue 
             if should_exclude(body_name,body_names_to_exclude_including): 
-                # exclude body_name including ones in 'body_names_to_exclude_including'
+                # 排除名称包含特定字符串的物体 'body_names_to_exclude_including'
                 continue
             body_idx = self.body_names.index(body_name)
             geom_idxs = [idx for idx,val in enumerate(self.model.geom_bodyid) if val==body_idx]
-            for geom_idx in geom_idxs: # for geoms attached to the body
+            for geom_idx in geom_idxs: # 遍历附着在该物体上的几何体
                 if rgba_list is None:
                     self.model.geom(geom_idx).rgba = rgba
                 else:
@@ -1848,11 +1848,11 @@ class MuJoCoParserClass(object):
         Returns:
             None
         """
-        for g_idx in range(self.n_geom): # for each geom
+        for g_idx in range(self.n_geom): # 遍历每个几何体
             geom = self.model.geom(g_idx)
             body_name = self.body_names[geom.bodyid[0]]
-            if body_name in body_names_to_exclude: continue # exclude certain bodies
-            # Change geom alpha
+            if body_name in body_names_to_exclude: continue # 排除特定物体
+            # 修改几何体透明度
             self.model.geom(g_idx).rgba[3] = alpha
             
     def get_sim_time(self,init_flag=False):
@@ -1915,7 +1915,7 @@ class MuJoCoParserClass(object):
         mujoco.mjr_readPixels(rgb_img,depth_img,self.viewer.viewport,self.viewer.ctx)
         rgb_img,depth_img = np.flipud(rgb_img),np.flipud(depth_img) # flip up-down
 
-        # Rescale depth image
+        # 重缩放深度 image
         extent = self.model.stat.extent
         near   = self.model.vis.map.znear * extent
         far    = self.model.vis.map.zfar * extent
@@ -1952,10 +1952,10 @@ class MuJoCoParserClass(object):
         Returns:
             tuple: (pcd, xyz_img, xyz_img_world) representing point cloud and intermediate coordinate arrays.
         """
-        # Get camera pose
+        # 获取相机位姿
         T_viewer = self.get_T_viewer()
 
-        # Camera intrinsic
+        # 相机内参
         img_height = depth_img.shape[0]
         img_width = depth_img.shape[1]
         focal_scaling = 0.5*img_height/np.tan(fovy*np.pi/360)
@@ -1963,12 +1963,12 @@ class MuJoCoParserClass(object):
                             (0,focal_scaling,img_height/2),
                             (0,0,1)))
 
-        # Estimate 3D point from depth image
+        # 从深度图估算三维点
         xyz_img = meters2xyz(depth_img,cam_matrix) # [H x W x 3]
         xyz_transpose = np.transpose(xyz_img,(2,0,1)).reshape(3,-1) # [3 x N]
         xyzone_transpose = np.vstack((xyz_transpose,np.ones((1,xyz_transpose.shape[1])))) # [4 x N]
 
-        # To world coordinate
+        # 转换到世界坐标
         xyzone_world_transpose = T_viewer @ xyzone_transpose
         xyz_world_transpose = xyzone_world_transpose[:3,:] # [3 x N]
         xyz_world = np.transpose(xyz_world_transpose,(1,0)) # [N x 3]
@@ -1999,7 +1999,7 @@ class MuJoCoParserClass(object):
             np.array: The captured RGB image.
         """
         if restore_view:
-            # Backup camera information
+            # 备份相机信息
             viewer_azimuth,viewer_distance,viewer_elevation,viewer_lookat = self.get_viewer_cam_info()
 
         if (p_ego is not None) and (p_trgt is not None):
@@ -2016,18 +2016,18 @@ class MuJoCoParserClass(object):
                 update    = True,
             )
         
-        # Grab RGB and depth image
+        # 抓取 RGB 和深度图像
         rgb_img,_ = self.grab_rgbd_img() # get rgb and depth images
 
-        # Resize rgb_image and depth_img (optional)
+        # 可选：缩放 RGB 和深度图像
         if rsz_rate is not None:
             h = int(rgb_img.shape[0]*rsz_rate)
             w = int(rgb_img.shape[1]*rsz_rate)
             rgb_img = cv2.resize(rgb_img,(w,h),interpolation=cv2.INTER_NEAREST)
             
-        # Restore view
+        # 恢复视角
         if restore_view:
-            # Restore camera information
+            # 恢复相机信息
             self.set_viewer(
                 azimuth   = viewer_azimuth,
                 distance  = viewer_distance,
@@ -2067,7 +2067,7 @@ class MuJoCoParserClass(object):
         )
         """
         if restore_view:
-            # Backup camera information
+            # 备份相机信息
             viewer_azimuth,viewer_distance,viewer_elevation,viewer_lookat = self.get_viewer_cam_info()
 
         if (p_ego is not None) and (p_trgt is not None):
@@ -2084,10 +2084,10 @@ class MuJoCoParserClass(object):
                 update    = True,
             )
         
-        # Grab RGB and depth image
+        # 抓取 RGB 和深度图像
         rgb_img,depth_img = self.grab_rgbd_img() # get rgb and depth images
 
-        # Resize depth image for reducing point clouds
+        # 缩放 depth image for reducing point clouds
         if rsz_rate_for_pcd is not None:
             h_rsz         = int(depth_img.shape[0]*rsz_rate_for_pcd)
             w_rsz         = int(depth_img.shape[1]*rsz_rate_for_pcd)
@@ -2095,22 +2095,22 @@ class MuJoCoParserClass(object):
         else:
             depth_img_rsz = depth_img
 
-        # Get PCD
+        # 获取点云
         if fovy is None:
             if len(self.model.cam_fovy)==0: fovy = 45.0 # if cam is not defined, use 45 deg (default value)
             else: fovy = self.model.cam_fovy[0] # otherwise use the fovy of the first camera
         pcd,xyz_img,xyz_img_world = self.get_pcd_from_depth_img(depth_img_rsz,fovy=fovy) # [N x 3]
 
-        # Resize rgb_image and depth_img (optional)
+        # 可选：缩放 RGB 和深度图像
         if rsz_rate_for_img is not None:
             h = int(rgb_img.shape[0]*rsz_rate_for_img)
             w = int(rgb_img.shape[1]*rsz_rate_for_img)
             rgb_img   = cv2.resize(rgb_img,(w,h),interpolation=cv2.INTER_NEAREST)
             depth_img = cv2.resize(depth_img,(w,h),interpolation=cv2.INTER_NEAREST)
 
-        # Restore view
+        # 恢复视角
         if restore_view:
-            # Restore camera information
+            # 恢复相机信息
             self.set_viewer(
                 azimuth   = viewer_azimuth,
                 distance  = viewer_distance,
@@ -2122,7 +2122,7 @@ class MuJoCoParserClass(object):
     
     def grab_image(self,rsz_rate=None,interpolation=cv2.INTER_NEAREST):
         """
-        Capture the current rendered image from the viewer.
+        从视窗抓取当前渲染图像
         
         Parameters:
             rsz_rate (float): Optional resize rate.
@@ -2135,12 +2135,12 @@ class MuJoCoParserClass(object):
         mujoco.mjr_render(self.viewer.viewport,self.viewer.scn,self.viewer.ctx)
         mujoco.mjr_readPixels(img, None,self.viewer.viewport,self.viewer.ctx)
         img = np.flipud(img) # flip image
-        # Resize
+        # 缩放
         if rsz_rate is not None:
             h = int(img.shape[0]*rsz_rate)
             w = int(img.shape[1]*rsz_rate)
             img = cv2.resize(img,(w,h),interpolation=interpolation)
-        # Backup
+        # 备份图像
         if img.sum() > 0:
             self.grab_image_backup = img
         if img.sum() == 0: # use backup instead
@@ -2151,17 +2151,17 @@ class MuJoCoParserClass(object):
         """
             Get RGB of fixed cam
         """
-        # Parse camera information
+        # 解析相机信息
         cam_idx  = self.cam_names.index(cam_name)
         cam      = self.cams[cam_idx]
         cam_fov  = self.cam_fovs[cam_idx]
         viewport = self.cam_viewports[cam_idx]
-        # Update
+        # 更新
         mujoco.mjv_updateScene(
             self.model,self.data,self.viewer.vopt,self.viewer.pert,
             cam,mujoco.mjtCatBit.mjCAT_ALL,self.viewer.scn)
         mujoco.mjr_render(viewport,self.viewer.scn,self.viewer.ctx)
-        # Grab RGBD
+        # 抓取 RGBD
         rgb = np.zeros((viewport.height,viewport.width,3),dtype=np.uint8)
         depth_raw = np.zeros((viewport.height,viewport.width),dtype=np.float32)
         mujoco.mjr_readPixels(rgb,depth_raw,viewport,self.viewer.ctx)
@@ -2170,7 +2170,7 @@ class MuJoCoParserClass(object):
     
     def get_fixed_cam_rgbd_pcd(self,cam_name,downscale_pcd=0.1):
         """
-        Capture RGB, depth images and point cloud data from a fixed camera.
+        从固定相机抓取 RGB、深度图和点云数据
         
         Parameters:
             cam_name (str): Name of the fixed camera.
@@ -2179,27 +2179,27 @@ class MuJoCoParserClass(object):
         Returns:
             tuple: (rgb, depth, pcd, T_view) from the fixed camera.
         """
-        # Parse camera information
+        # 解析相机信息
         cam_idx  = self.cam_names.index(cam_name)
         cam      = self.cams[cam_idx]
         cam_fov  = self.cam_fovs[cam_idx]
         viewport = self.cam_viewports[cam_idx]
-        # Update
+        # 更新
         mujoco.mjv_updateScene(
             self.model,self.data,self.viewer.vopt,self.viewer.pert,
             cam,mujoco.mjtCatBit.mjCAT_ALL,self.viewer.scn)
         mujoco.mjr_render(viewport,self.viewer.scn,self.viewer.ctx)
-        # Grab RGBD
+        # 抓取 RGBD
         rgb = np.zeros((viewport.height,viewport.width,3),dtype=np.uint8)
         depth_raw = np.zeros((viewport.height,viewport.width),dtype=np.float32)
         mujoco.mjr_readPixels(rgb,depth_raw,viewport,self.viewer.ctx)
         rgb,depth_raw = np.flipud(rgb),np.flipud(depth_raw)
-        # Rescale depth
+        # 重缩放深度
         extent = self.model.stat.extent
         near   = self.model.vis.map.znear * extent
         far    = self.model.vis.map.zfar * extent
         depth = near/(1-depth_raw*(1-near/far))
-        # Get PCD with resized depth image
+        # 使用缩放后的深度图生成点云
         h_rsz = int(depth.shape[0]*downscale_pcd)
         w_rsz = int(depth.shape[1]*downscale_pcd)
         depth_rsz = cv2.resize(depth,(w_rsz,h_rsz),interpolation=cv2.INTER_NEAREST)
@@ -2211,12 +2211,12 @@ class MuJoCoParserClass(object):
         xyz_img = meters2xyz(depth_rsz,cam_matrix) # [H x W x 3]
         xyz_transpose = np.transpose(xyz_img,(2,0,1)).reshape(3,-1) # [3 x N]
         xyzone_transpose = np.vstack((xyz_transpose,np.ones((1,xyz_transpose.shape[1])))) # [4 x N]
-        # PCD to world coordinate
+        # 点云转换到世界坐标
         T_view = self.get_T_cam(cam_name=cam_name)@pr2t(p=np.zeros(3),R=rpy2r(np.deg2rad([-45.,90.,45.])))
         xyzone_world_transpose = T_view @ xyzone_transpose
         xyz_world_transpose = xyzone_world_transpose[:3,:] # [3 x N]
         pcd = np.transpose(xyz_world_transpose,(1,0)) # [N x 3]
-        # Return
+        # 返回
         return rgb,depth,pcd,T_view
         
     def get_body_names(self,prefix='',excluding='world'):
@@ -2662,7 +2662,7 @@ class MuJoCoParserClass(object):
         Returns:
             None
         """
-        if T is not None: # if T is not None, it overrides p and R
+        if T is not None: # 若传入了 T 则覆盖 p 和 R
             p = t2p(T)
             R = t2r(T)
             
@@ -2937,7 +2937,7 @@ class MuJoCoParserClass(object):
         Returns:
             None
         """
-        # Ensure p_fr and p_to are numpy arrays
+        # 确保 p_fr 和 p_to 为 numpy 数组
         p_fr = np.asarray(p_fr)
         p_to = np.asarray(p_to)
         R_fr2to = get_rotation_matrix_from_two_points(p_fr=p_fr,p_to=p_to)
@@ -2962,7 +2962,7 @@ class MuJoCoParserClass(object):
         Returns:
             None
         """
-        # Ensure p_fr and p_to are numpy arrays
+        # 确保 p_fr 和 p_to 为 numpy 数组
         p_fr = np.asarray(p_fr)
         p_to = np.asarray(p_to)
         R_fr2to = get_rotation_matrix_from_two_points(p_fr=p_fr,p_to=p_to)
@@ -2988,7 +2988,7 @@ class MuJoCoParserClass(object):
         Returns:
             None
         """
-        # Ensure p_fr and p_to are numpy arrays
+        # 确保 p_fr 和 p_to 为 numpy 数组
         p_fr = np.asarray(p_fr)
         p_to = np.asarray(p_to)
         R_fr2to = get_rotation_matrix_from_two_points(p_fr=p_fr,p_to=p_to)
@@ -3328,7 +3328,7 @@ class MuJoCoParserClass(object):
             if body_name is None: continue
             
             if should_exclude(body_name,body_names_to_exclude_including): 
-                # exclude body_name including ones in 'body_names_to_exclude_including'
+                # 排除名称包含特定字符串的物体 'body_names_to_exclude_including'
                 continue
             
             if plot_name:
@@ -3462,19 +3462,19 @@ class MuJoCoParserClass(object):
         body2s = []
         for c_idx in range(self.data.ncon):
             contact   = self.data.contact[c_idx]
-            # Contact position and frame orientation
+            # 接触位置和坐标系方向
             p_contact = contact.pos # contact position
             R_frame   = contact.frame.reshape(( 3,3))
-            # Contact force
+            # 接触力
             f_contact_local = np.zeros(6,dtype=np.float64)
             mujoco.mj_contactForce(self.model,self.data,0,f_contact_local)
             f_contact = R_frame @ f_contact_local[:3] # in the global coordinate
-            # Contacting geoms
+            # 接触几何体
             contact_geom1 = self.geom_names[contact.geom1]
             contact_geom2 = self.geom_names[contact.geom2]
             contact_body1 = self.body_names[self.model.geom_bodyid[contact.geom1]]
             contact_body2 = self.body_names[self.model.geom_bodyid[contact.geom2]]
-            # Append
+            # 追加
             if must_include_prefix is not None:
                 if (contact_geom1[:len(must_include_prefix)] == must_include_prefix) or \
                 (contact_geom2[:len(must_include_prefix)] == must_include_prefix):
@@ -3663,7 +3663,7 @@ class MuJoCoParserClass(object):
                 label = '[%s]-[%s]'%(geom1,geom2)
             else:
                 label = '' 
-        # Print
+        # 打印信息
         if verbose:
             self.print_contact_info(must_include_prefix=must_include_prefix)
             

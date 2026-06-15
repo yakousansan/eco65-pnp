@@ -14,17 +14,14 @@ class SimpleEnv:
     def __init__(self, 
                  xml_path,
                 action_type='eef_pose', 
-                state_type='joint_angle',
-                seed = None):
+                state_type='joint_angle'):
         """
-        args:
-            xml_path: str, path to the xml file
-            action_type: str, type of action space, 'eef_pose','delta_joint_angle' or 'joint_angle'
-            state_type: str, type of state space, 'joint_angle' or 'ee_pose'
-            seed: int, seed for random number generator
+        参数:
+            xml_path: str, XML 模型文件路径
+            action_type: str, 动作空间类型 ('eef_pose'/'delta_joint_angle'/'joint_angle')
+            state_type: str, 状态空间类型 ('joint_angle'/'ee_pose')
         """
-        # Load the xml file from its own directory so MuJoCo include/mesh paths
-        # resolve the same way whether scripts run from the repo root or model/.
+        # 切换到 XML 所在目录加载，确保 MuJoCo include/mesh 路径正确解析
         xml_abs_path = os.path.abspath(xml_path)
         xml_dir = os.path.dirname(xml_abs_path)
         xml_name = os.path.basename(xml_abs_path)
@@ -44,11 +41,11 @@ class SimpleEnv:
                     'joint_5',
                     'joint_6',]
         self.init_viewer()
-        self.reset(seed)
+        self.reset()
 
     def init_viewer(self):
         '''
-        Initialize the viewer
+        初始化渲染窗口
         '''
         self.env.reset()
         self.env.init_viewer(
@@ -59,18 +56,16 @@ class SimpleEnv:
             use_rgb_overlay = False,
             loc_rgb_overlay = 'top right',
         )
-    def reset(self, seed = None):
+    def reset(self):
         '''
-        Reset the environment
-        Move the robot to a initial position, set the object positions based on the seed
+        重置环境：将机器人移至初始位置，并随机放置物体
         '''
-        if seed is not None: np.random.seed(seed)
         q_init = np.deg2rad([0,0,0,0,0,0])
-        # ECO65 ready pose: gripper points down toward the table.
+        # ECO65 预备位姿：夹爪指向桌面
         q_zero = np.deg2rad([0.0, 0.0, 90.0, -0.61, -90.01, 90.0])
         self.env.forward(q=q_zero,joint_names=self.joint_names,increase_tick=False)
 
-        # Set object positions
+        # 随机放置物体
         obj_names = self.env.get_body_names(prefix='body_obj_')
         n_obj = len(obj_names)
         obj_xyzs = sample_xyzs(
@@ -86,7 +81,7 @@ class SimpleEnv:
             self.env.set_R_base_body(body_name=obj_names[obj_idx],R=np.eye(3,3))
         self.env.forward(increase_tick=False)
 
-        # Set the initial pose of the robot
+        # 设置机器人初始位姿
         self.last_q = copy.deepcopy(q_zero)
         self.q = np.concatenate([q_zero, np.array([0.0]*1)])
         self.p0, self.R0 = self.env.get_pR_body(body_name='link_6')
@@ -96,27 +91,26 @@ class SimpleEnv:
             self.step_env()
         print("DONE INITIALIZATION")
         print("-" * 50)
-        print("[Teleoperation Key Bindings]")
-        print("  Move (X/Y plane):     W/S = forward/backward,  A/D = left/right")
-        print("  Move (Z axis):        R = up,  F = down")
-        print("  Rotate (end-effector):     Q = tilt left,  E = tilt right")
-        print("                        UP/DOWN = pitch,  LEFT/RIGHT = yaw")
-        print("  Gripper:              SPACEBAR = open/close")
-        print("  Reset:                Z = reset episode")
+        print("[遥操作按键绑定]")
+        print("  平移 (X/Y 平面):     W/S = 前进/后退,  A/D = 左移/右移")
+        print("  平移 (Z 轴):         R = 上升,  F = 下降")
+        print("  旋转 (末端):         Q = 左倾,  E = 右倾")
+        print("                        ↑/↓ = 俯仰,  ←/→ = 偏航")
+        print("  夹爪:               SPACE = 开合")
+        print("  重置:               Z = 重置当前 episode")
         print("-" * 50)
         self.gripper_state = False
         self.past_chars = []
 
     def step(self, action):
         '''
-        Take a step in the environment
-        args:
-            action: np.array of shape (7,), action to take
-        returns:
-            state: np.array, state of the environment after taking the action
+        在环境中执行一步动作
+        参数:
+            action: np.array, 形状 (7,), 要执行的动作
+        返回:
+            state: np.array, 执行动作后的环境状态
                 - ee_pose: [px,py,pz,r,p,y]
                 - joint_angle: [j1,j2,j3,j4,j5,j6]
-
         '''
         if self.action_type == 'eef_pose':
             q = self.env.get_qpos_joints(joint_names=self.joint_names)
@@ -164,10 +158,10 @@ class SimpleEnv:
 
     def grab_image(self):
         '''
-        grab images from the environment
-        returns:
-            rgb_agent: np.array, rgb image from the agent's view
-            rgb_ego: np.array, rgb image from the egocentric
+        从环境中抓取图像
+        返回:
+            rgb_agent: np.array, 第三人称视角 RGB 图像
+            rgb_ego: np.array, 腕部相机 RGB 图像
         '''
         self.rgb_agent = self.env.get_fixed_cam_rgb(
             cam_name='agentview')
@@ -182,7 +176,7 @@ class SimpleEnv:
 
     def render(self, teleop=False):
         '''
-        Render the environment
+        渲染环境画面
         '''
         self.env.plot_time()
         p_current, R_current = self.env.get_pR_body(body_name='link_6')
@@ -207,9 +201,9 @@ class SimpleEnv:
 
     def get_joint_state(self):
         '''
-        Get the joint state of the robot
-        returns:
-            q: np.array, joint angles of the robot + gripper state (0 for open, 1 for closed)
+        获取机器人关节状态
+        返回:
+            q: np.array, 关节角 + 夹爪状态 (0=闭合, 1=张开)
             [j1,j2,j3,j4,j5,j6,gripper]
         '''
         qpos = self.env.get_qpos_joints(joint_names=self.joint_names)
@@ -219,38 +213,38 @@ class SimpleEnv:
     
     def teleop_robot(self):
         '''
-        Teleoperate the robot using keyboard
-        returns:
-            action: np.array, action to take
-            done: bool, True if the user wants to reset the teleoperation
-        
-        Keys:
+        通过键盘遥操作控制机器人
+        返回:
+            action: np.array, 要执行的动作
+            done: bool, 是否重置遥操作
+
+        按键:
             ---------     -----------------------
-               w       ->        backward
-            s  a  d        left   forward   right
+               w       ->        前进
+            s  a  d        左移   后退   右移
             ---------      -----------------------
-            In x, y plane
+            X/Y 平面平移
 
             ---------
-            R: Moving Up
-            F: Moving Down
+            R: 上升
+            F: 下降
             ---------
-            In z axis
+            Z 轴平移
 
             ---------
-            Q: Tilt left
-            E: Tilt right
-            UP: Look Upward
-            Down: Look Donward
-            Right: Turn right
-            Left: Turn left
+            Q: 左倾
+            E: 右倾
+            ↑: 上仰
+            ↓: 下俯
+            →: 右转
+            ←: 左转
             ---------
-            For rotation
+            末端旋转
 
             ---------
-            z: reset
-            SPACEBAR: gripper open/close
-            ---------   
+            Z: 重置
+            SPACE: 夹爪开合
+            ---------
 
 
         '''
@@ -291,9 +285,9 @@ class SimpleEnv:
     
     def get_delta_q(self):
         '''
-        Get the delta joint angles of the robot
-        returns:
-            delta: np.array, delta joint angles of the robot + gripper state (0 for open, 1 for closed)
+        获取机器人关节角增量
+        返回:
+            delta: np.array, 关节角增量 + 夹爪状态 (0=闭合, 1=张开)
             [dj1,dj2,dj3,dj4,dj5,dj6,gripper]
         '''
         delta = self.compute_q - self.last_q
@@ -306,8 +300,7 @@ class SimpleEnv:
     def check_success(self):
         '''
         ['body_obj_mug_5', 'body_obj_plate_11']
-        Check if the mug is placed on the plate
-        + Gripper should be open and move upward above 0.9
+        判断杯子是否已放置在盘子上，且夹爪已张开、机械臂已抬起
         '''
         # 获取物体当前位置
         p_mug = self.env.get_p_body('body_obj_mug_5')
@@ -321,9 +314,9 @@ class SimpleEnv:
     
     def get_obj_pose(self):
         '''
-        returns: 
-            p_mug: np.array, position of the mug
-            p_plate: np.array, position of the plate
+        返回:
+            p_mug: np.array, 杯子位置
+            p_plate: np.array, 盘子位置
         '''
         p_mug = self.env.get_p_body('body_obj_mug_5')
         p_plate = self.env.get_p_body('body_obj_plate_11')
@@ -332,10 +325,10 @@ class SimpleEnv:
     # 设置杯子和盘子的位置和方向
     def set_obj_pose(self, p_mug, p_plate):
         '''
-        Set the object poses
-        args:
-            p_mug: np.array, position of the mug
-            p_plate: np.array, position of the plate
+        设置物体位姿
+        参数:
+            p_mug: np.array, 杯子位置
+            p_plate: np.array, 盘子位置
         '''
         self.env.set_p_base_body(body_name='body_obj_mug_5',p=p_mug)
         self.env.set_R_base_body(body_name='body_obj_mug_5',R=np.eye(3,3))
@@ -346,7 +339,7 @@ class SimpleEnv:
     # 获取末端执行器的位姿
     def get_ee_pose(self):
         '''
-        get the end effector pose of the robot + gripper state
+        获取机器人末端执行器位姿
         '''
         p, R = self.env.get_pR_body(body_name='link_6')
         rpy = r2rpy(R)

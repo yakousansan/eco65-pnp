@@ -10,26 +10,23 @@ import torchvision
 
 device = torch.device("cuda")
 
-# Number of offline training steps (we'll only do offline training for this example.)
-# Adjust as you prefer. 5000 steps are needed to get something worth evaluating.
+# 离线训练步数（可根据需要调整，5000 步以上效果较可评估）
 training_steps = 3000
 log_freq = 100
 
-# When starting from scratch (i.e. not from a pretrained policy), we need to specify 2 things before
-# creating the policy:
-#   - input/output shapes: to properly size the policy
-#   - dataset stats: for normalization and denormalization of input/outputs
+# 从头训练时需指定两件事：
+#   - 输入/输出形状：正确设置策略维度
+#   - 数据集统计量：用于输入/输出的归一化和反归一化
 dataset_metadata = LeRobotDataset("eco65_pnp", root='./demo_data')
 features = dataset_to_policy_features(dataset_metadata.features)
 output_features = {key: ft for key, ft in features.items() if ft.type is FeatureType.ACTION}
 input_features = {key: ft for key, ft in features.items() if key not in output_features}
 input_features.pop("observation.wrist_image")
-# Policies are initialized with a configuration class, in this case `DiffusionConfig`. For this example,
-# we'll just use the defaults and so no arguments other than input/output features need to be passed.
+# 策略通过配置类初始化，除输入/输出特征外其余使用默认值
 cfg = ACTConfig(input_features=input_features, output_features=output_features, chunk_size= 10, n_action_steps=10)
-# This allows us to construct the data with action chunking
+# 解析 delta_timestamps 以构建 action chunk 数据
 delta_timestamps = resolve_delta_timestamps(cfg, dataset_metadata)
-# We can now instantiate our policy with this config and the dataset stats.
+# 使用配置和数据集统计量实例化策略
 policy = ACTPolicy(cfg, dataset_stats=dataset_metadata.meta.stats)
 policy.train()
 policy.to(device)
@@ -38,31 +35,31 @@ from torchvision import transforms
 
 class AddGaussianNoise(object):
     """
-    Adds Gaussian noise to a tensor.
+    为张量添加高斯噪声
     """
     def __init__(self, mean=0., std=0.01):
         self.mean = mean
         self.std = std
 
     def __call__(self, tensor):
-        # Adds noise: tensor remains a tensor.
+        # 添加噪声：输入输出均为张量
         noise = torch.randn(tensor.size()) * self.std + self.mean
         return tensor + noise
 
     def __repr__(self):
         return f"{self.__class__.__name__}(mean={self.mean}, std={self.std})"
 
-# Create a transformation pipeline that converts a PIL image to a tensor, then adds noise.
+# 构建图像变换流水线：添加高斯噪声后裁剪至 [0,1]
 transform = transforms.Compose([
     AddGaussianNoise(mean=0., std=0.02),
     transforms.Lambda(lambda x: x.clamp(0, 1))
 ])
 
 
-# We can then instantiate the dataset with these delta_timestamps configuration.
+# 使用 delta_timestamps 和图像变换实例化数据集
 dataset = LeRobotDataset("eco65_pnp", delta_timestamps=delta_timestamps, root='./demo_data', image_transforms=transform)
 
-# Then we create our optimizer and dataloader for offline training.
+# 创建优化器和离线训练 DataLoader
 optimizer = torch.optim.Adam(policy.parameters(), lr=1e-4)
 dataloader = torch.utils.data.DataLoader(
     dataset,
@@ -74,7 +71,7 @@ dataloader = torch.utils.data.DataLoader(
 )
 
 
-# Run training loop.
+# 训练循环
 step = 0
 done = False
 while not done:
@@ -93,7 +90,7 @@ while not done:
             break
 
 
-# Save the policy to disk.
+# 保存策略到磁盘
 policy.save_pretrained('./ckpt/act_y')
 
 import torch
@@ -136,7 +133,7 @@ gt_actions = torch.cat(gt_actions, dim=0)
 print(f"Mean action error: {torch.mean(torch.abs(actions - gt_actions)).item():.3f}")
 
 '''
-plot actions and gt_actions
+绘制预测动作与真值对比
 '''
 import matplotlib.pyplot as plt
 action_dim = 7

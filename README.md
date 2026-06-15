@@ -278,7 +278,6 @@ eco65-act-pnp/
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `SEED` | `None` | 随机种子（None=随机物体位置，设值=固定位置） |
 | `NUM_DEMO` | `1` | 采集的 episode 数量 |
 | `ROOT` | `"./demo_data"` | 数据集保存路径 |
 | `TASK_NAME` | `"Put mug cup on the plate"` | 任务描述文本 |
