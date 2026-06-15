@@ -10,8 +10,7 @@ import torch
 from PIL import Image
 import torchvision
 
-# device = 'cuda'
-device = 'cpu'
+device = 'cuda'
 dataset_metadata = LeRobotDatasetMetadata("eco65_pnp", root='./demo_data')
 features = dataset_to_policy_features(dataset_metadata.features)
 output_features = {key: ft for key, ft in features.items() if ft.type is FeatureType.ACTION}

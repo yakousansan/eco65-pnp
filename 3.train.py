@@ -10,7 +10,7 @@ import torchvision
 
 device = torch.device("cuda")
 
-# 离线训练步数（可根据需要调整，5000 步以上效果较可评估）
+# 离线训练步数
 training_steps = 3000
 log_freq = 100
 
@@ -133,16 +133,29 @@ gt_actions = torch.cat(gt_actions, dim=0)
 print(f"Mean action error: {torch.mean(torch.abs(actions - gt_actions)).item():.3f}")
 
 '''
-绘制预测动作与真值对比
+绘制预测动作与真值对比：7 个子图对应 6 个关节角 + 1 个夹爪，
+蓝线 (pred) 为策略预测值，橙线 (gt) 为遥操作真值，
+越贴合说明模仿效果越好。
 '''
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from datetime import datetime
+
 action_dim = 7
+action_names = ['joint_1', 'joint_2', 'joint_3', 'joint_4', 'joint_5', 'joint_6', 'gripper']
 
 fig, axs = plt.subplots(action_dim, 1, figsize=(10, 10))
 
 for i in range(action_dim):
     axs[i].plot(actions[:, i].cpu().detach().numpy(), label="pred")
     axs[i].plot(gt_actions[:, i].cpu().detach().numpy(), label="gt")
-    axs[i].legend()
-plt.show()
+    axs[i].set_ylabel(action_names[i])
+    axs[i].legend(loc='upper right')
+
+timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+save_path = f'./training_plot_{timestamp}.png'
+plt.tight_layout()
+plt.savefig(save_path, dpi=150)
+print(f'Plot saved to {save_path}')
 
