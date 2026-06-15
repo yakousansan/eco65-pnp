@@ -227,8 +227,6 @@ python 3_act_train.py
 **pi0 training:**
 
 ```bash
-python train_model.py --config_path pi0_eco65.yaml
-# Deploy pi0 policy
 python 5_pi0_train.py
 ```
 
@@ -271,7 +269,7 @@ eco65-pnp/
 ├── 2.visualize_data.py       # Data visualization (replay + stats computation)
 ├── 3_act_train.py            # ACT policy training
 ├── 4.deploy.py               # ACT policy deployment & inference
-├── 5_pi0_train.py            # pi0 policy training & deployment
+├── 5_pi0_train.py            # pi0 policy training
 ├── model/                    # MuJoCo model assets
 │   ├── demo_scene.xml        # Main scene (table + robot + objects)
 │   ├── eco65_with_2f85_d435i.xml  # ECO65 + Robotiq 2F-85 + D435i model

@@ -227,8 +227,6 @@ python 3_act_train.py
 **pi0 训练：**
 
 ```bash
-python train_model.py --config_path pi0_eco65.yaml
-# 部署 pi0 策略
 python 5_pi0_train.py
 ```
 
@@ -271,7 +269,7 @@ eco65-pnp/
 ├── 2.visualize_data.py       # 数据可视化脚本（回放 + 统计量计算）
 ├── 3_act_train.py            # ACT 策略训练脚本
 ├── 4.deploy.py               # ACT 策略部署与推理脚本
-├── 5_pi0_train.py            # pi0 策略训练与部署脚本
+├── 5_pi0_train.py            # pi0 策略训练脚本
 ├── model/                    # MuJoCo 模型资源
 │   ├── demo_scene.xml        # 主场景（桌面 + 机器人 + 物体）
 │   ├── eco65_with_2f85_d435i.xml  # ECO65 + Robotiq 2F-85 + D435i 模型

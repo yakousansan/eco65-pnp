@@ -1,0 +1,28 @@
+dataset:
+  repo_id: eco65_pnp
+  root: ./demo_data
+
+policy:
+  type: pi0
+  pretrained_path: lerobot/pi0
+  chunk_size: 5
+  n_action_steps: 5
+  image_resolution: [256, 256]
+  device: cuda
+  push_to_hub: false
+
+output_dir: ./ckpt/pi0_eco65
+job_name: pi0_eco65
+resume: false
+seed: 42
+num_workers: 4
+batch_size: 8
+steps: 2000
+eval_freq: -1
+log_freq: 20
+save_checkpoint: true
+save_freq: 500
+use_policy_training_preset: true
+
+wandb:
+  enable: false
