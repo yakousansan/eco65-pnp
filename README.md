@@ -319,8 +319,6 @@ eco65-act-pnp/
 | IK 最大迭代 | 50 | 逆运动学求解最大迭代次数 |
 | IK 容差 | 1e-2 m / 5° | 位置/姿态收敛阈值 |
 
-> **注意**：项目中的物体名称（如 `body_obj_mug_5`、`body_obj_plate_11`）取决于 MuJoCo XML 编译结果，在不同机器上可能不同。如遇到物体位置设置异常，请检查 `y_env.py` 中 `check_success()` 和 `set_obj_pose()` 方法中的物体名称，并根据实际编译结果进行调整。
-
 ### 许可证
 
 本项目基于 MIT 许可证开源。详见 [LICENSE](LICENSE) 文件。

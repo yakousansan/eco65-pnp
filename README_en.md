@@ -319,8 +319,6 @@ eco65-act-pnp/
 | IK max iterations | 50 | Max IK solver iterations |
 | IK tolerance | 1e-2 m / 5° | Position/orientation convergence threshold |
 
-> **Note**: Object body names (e.g., `body_obj_mug_5`, `body_obj_plate_11`) depend on MuJoCo XML compilation results and may differ across machines. If object positions behave unexpectedly, check the body names in `check_success()` and `set_obj_pose()` methods in `y_env.py` and adjust them according to your actual compilation output.
-
 ### License
 
 This project is open-sourced under the MIT License. See the [LICENSE](LICENSE) file for details.
