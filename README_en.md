@@ -1,0 +1,314 @@
+# ECO65 Imitation Learning: From Data Collection to Model Deployment
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue?logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/MuJoCo-3.2+-green?logo=robot-framework" alt="MuJoCo">
+  <img src="https://img.shields.io/badge/PyTorch-2.0+-red?logo=pytorch" alt="PyTorch">
+  <img src="https://img.shields.io/badge/LeRobot-v3.0-orange?logo=huggingface" alt="LeRobot">
+  <img src="https://img.shields.io/badge/License-MIT-lightgrey" alt="License">
+</p>
+
+<p align="center">
+  <a href="README.md">简体中文</a> | <b>English</b>
+</p>
+
+---
+
+### Overview
+
+This project implements a complete imitation learning pipeline: controlling an ECO65 6-DOF robotic arm in the MuJoCo simulation environment via keyboard teleoperation to perform the **"Put mug cup on the plate"** pick-and-place task, collecting demonstration data, training an ACT (Action Chunking with Transformers) policy network, and finally deploying the model for autonomous task completion.
+
+The core workflow consists of four steps: **Data Collection → Data Visualization → Policy Training → Model Deployment**, built on the LeRobot dataset framework (v3.0 format) and MuJoCo physics engine.
+
+### Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Dependencies](#dependencies)
+- [Environment Setup](#environment-setup)
+- [Installation & Build](#installation--build)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Configuration](#configuration)
+- [License](#license)
+
+---
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│              Data Collection (1.collect_data.py)     │
+│  Teleop → IK Solver → MuJoCo Sim → LeRobot Dataset  │
+│  Input: Keyboard (WASD + QE + Arrows + Space)       │
+│  Output: demo_data/ (Parquet + MP4)                 │
+└──────────────────────────┬──────────────────────────┘
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│           Data Visualization (2.visualize_data.py)   │
+│  Replay episodes, verify data quality               │
+│  Compute normalization stats → stats.json            │
+└──────────────────────────┬──────────────────────────┘
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│                Training (3.train.py)                 │
+│  ACT Policy: ResNet18 + Transformer Encoder-Decoder  │
+│  Input: RGB image (256×256) + end-effector pose (6D) │
+│  Output: joint angles + gripper (7D) × 10-step chunk│
+│  Save: ckpt/act_y/                                   │
+└──────────────────────────┬──────────────────────────┘
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│               Deployment (4.deploy.py)               │
+│  Load model → Inference → MuJoCo execution → Task    │
+│  + Temporal Ensemble smoothing + Success detection   │
+└─────────────────────────────────────────────────────┘
+```
+
+**ACT Network Architecture:**
+
+```
+Input                        Output
+┌──────────────┐             ┌──────────────────┐
+│ image (3×256)│──┐          │  action chunk    │
+│   ResNet18   │  │   ┌────┐ │  [10, 7]         │
+│   ─────────  │──┼──▶│    │ │  t₀..t₉: joints  │
+│  img_feat(512)│  │  │ACT │ │  + gripper       │
+└──────────────┘  │  │    │ └──────────────────┘
+                  │  │Tran│
+┌──────────────┐  │  │sfo─│
+│ state [6]    │──┤  │rmer│
+│  (x,y,z,r,p,y)│  │  │Enco│
+└──────────────┘  │  │der─│
+                  │  │Deco │
+         ┌──────┐ │  │der │
+         │ VAE  │ │  │    │
+         │ (32D) │─┘  │    │
+         └──────┘    └────┘
+```
+
+### Features
+
+- **End-to-end imitation learning pipeline**: Four scripts cover data collection through model deployment
+- **Keyboard teleoperation**: Intuitive WASD + QE end-effector control — no specialized hardware required
+- **ACT policy network**: Transformer-based Action Chunking predicts 10 consecutive action steps for smooth trajectories
+- **VAE action encoding**: Optional variational autoencoder learns action latent representations for diverse behavior
+- **Temporal Ensemble**: Exponential moving average smoothing during deployment eliminates prediction jitter
+- **LeRobot v3.0 format**: Standardized Parquet + MP4 storage, compatible with HuggingFace LeRobot ecosystem
+- **High-fidelity MuJoCo simulation**: ECO65 6-axis arm + PGC140 parallel gripper + D435i depth camera
+- **IK solver**: Damped Least Squares (DLS) inverse kinematics for end-effector space teleoperation
+- **Multi-view rendering**: Third-person view (agentview) + wrist view (d435i_rgb) + side view
+- **Randomized object positions**: Mug and plate positions are randomized within table bounds on each reset
+
+### Dependencies
+
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| Python | ≥ 3.10 | Main programming language |
+| PyTorch | ≥ 2.0 | Deep learning framework |
+| MuJoCo | ≥ 3.2 | Physics simulation engine |
+| LeRobot | ≥ 0.4 | Dataset management & policy framework |
+| NumPy | ≥ 1.24 | Numerical computing |
+| OpenCV (cv2) | ≥ 4.8 | Image processing |
+| Pillow | ≥ 10.0 | Image I/O |
+| GLFW | - | MuJoCo window rendering backend |
+| Matplotlib | ≥ 3.7 | Training curves & data visualization |
+| TorchVision | ≥ 0.15 | ResNet pretrained weights |
+
+### Environment Setup
+
+We recommend using Conda:
+
+```bash
+# Create and activate environment
+conda create -n eco65_act python=3.10 -y
+conda activate eco65_act
+
+# Install PyTorch (choose based on CUDA version)
+# CUDA 12.1
+pip install torch torchvision --index-url https://pytorch.org/whl/cu121
+# Or CPU only
+pip install torch torchvision --index-url https://pytorch.org/whl/cpu
+
+# Install MuJoCo
+pip install mujoco
+
+# Install LeRobot
+pip install lerobot
+
+# Install other dependencies
+pip install numpy opencv-python pillow glfw matplotlib
+```
+
+### Installation & Build
+
+```bash
+# Clone the repository
+git clone https://github.com/yakousansan/eco65-act-pnp.git
+cd eco65-act-pnp
+
+# Verify MuJoCo can load the scene
+python OpenDemo.py
+```
+
+### Usage
+
+#### Step 1: Preview the Scene
+
+```bash
+# Open the MuJoCo scene to verify model loading
+python OpenDemo.py
+```
+
+#### Step 2: Collect Demonstration Data
+
+```bash
+python 1.collect_data.py
+```
+
+In the MuJoCo window, use keyboard teleoperation to control the robot arm for the "put mug on plate" task:
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `W` / `S` | Forward / Backward | World X axis, step 0.007m |
+| `A` / `D` | Left / Right | World Y axis, step 0.007m |
+| `R` / `F` | Up / Down | World Z axis, step 0.007m |
+| `Q` / `E` | Tilt Left / Right | Rotate around Z axis (roll) |
+| `↑` / `↓` | Pitch | Rotate around X axis |
+| `←` / `→` | Yaw | Rotate around Y axis |
+| `Space` | Gripper Open/Close | Toggle 0 ↔ 1 |
+| `Z` | Reset | Discard current episode, restart |
+| `Esc` | Quit | Close window, auto-save data |
+
+Each successful placement auto-saves one episode. Closing the window triggers video encoding and disk write.
+
+> **Tip**: Modify `NUM_DEMO` to change collection count, `ROOT` to change save path in the script.
+
+#### Step 3: Visualize Collected Data
+
+```bash
+python 2.visualize_data.py
+```
+
+Replay collected episodes in MuJoCo to verify data quality. Automatically computes normalization statistics (mean/std) and saves to `demo_data/meta/stats.json`.
+
+#### Step 4: Train ACT Policy
+
+```bash
+python 3.train.py
+```
+
+Training process:
+- Load dataset and statistics
+- Initialize ACT network (ResNet18 + Transformer + VAE)
+- 3000 training steps, Adam optimizer (lr=1e-4), batch size=64
+- Data augmentation: Gaussian image noise (std=0.02)
+- Loss: L1 reconstruction + KL divergence (weight 10.0)
+- GPU training takes ~5-15 minutes
+- Model saved to `ckpt/act_y/`
+
+After training, a prediction vs. ground truth comparison plot is displayed.
+
+#### Step 5: Deploy and Test
+
+```bash
+python 4.deploy.py
+```
+
+Loads the trained model and runs autonomously in MuJoCo. The policy predicts action chunks from real-time visual and state inputs. Automatically resets on task completion.
+
+> **Poor performance?** Return to Step 2 and collect more demonstrations. 20+ episodes recommended for good generalization.
+
+#### Utility Scripts
+
+```bash
+python KeyControl.py   # Keyboard teleop test (no recording)
+python LoadMode.py     # Scene observation only (no control)
+```
+
+### Project Structure
+
+```
+eco65-act-pnp/
+├── 1.collect_data.py         # Data collection (keyboard teleop + LeRobot recording)
+├── 2.visualize_data.py       # Data visualization (replay + stats computation)
+├── 3.train.py                # ACT policy training
+├── 4.deploy.py               # Model deployment & inference
+├── OpenDemo.py               # Scene preview (MuJoCo only)
+├── KeyControl.py             # Teleoperation test (no recording)
+├── LoadMode.py               # Scene observer (idle)
+├── vla-guide.md              # Detailed project documentation (Chinese)
+├── model/                    # MuJoCo model assets
+│   ├── demo_scene.xml        # Main scene (table + robot + objects)
+│   ├── eco65_with_pgc140_d435i.xml  # ECO65 + PGC140 + D435i model
+│   ├── mug_5/                # Mug mesh model
+│   ├── plate_11/             # Plate mesh model
+│   ├── tabletop/             # Table mesh model
+│   ├── realsense_d435i/      # D435i camera model
+│   ├── dh_pgc140_meshes/     # PGC140 gripper meshes
+│   └── eco65_meshes/         # ECO65 arm meshes
+├── mujoco_env/               # MuJoCo environment wrapper
+│   ├── __init__.py
+│   ├── y_env.py              # SimpleEnv (teleop, IK, rendering)
+│   ├── mujoco_parser.py      # Low-level MuJoCo interface
+│   ├── ik.py                 # IK solver (Damped Least Squares)
+│   ├── transforms.py         # Coordinate transforms (RPY ↔ rotation matrix)
+│   └── utils.py              # Utilities (sampling, imaging, rendering)
+├── ckpt/
+│   └── act_y/                # ACT policy checkpoint
+│       ├── config.json       # Policy configuration
+│       └── model.safetensors # Model weights
+└── demo_data/                # LeRobot dataset (generated after collection)
+    └── meta/
+        └── info.json         # Dataset metadata
+```
+
+### Configuration
+
+#### Data Collection Parameters (`1.collect_data.py`)
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `SEED` | `None` | Random seed (None=random positions, set value=fixed) |
+| `NUM_DEMO` | `1` | Number of episodes to collect |
+| `ROOT` | `"./demo_data"` | Dataset save path |
+| `TASK_NAME` | `"Put mug cup on the plate"` | Task description |
+| Collection FPS | 20 Hz | Frames per second |
+| Image Resolution | 256 × 256 | Captured image size |
+
+#### ACT Policy Parameters (`3.train.py` and `ckpt/act_y/config.json`)
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `chunk_size` | 10 | Predict 10 action steps at once |
+| `n_action_steps` | 10 (train) / 1 (deploy) | Action steps to execute |
+| `n_obs_steps` | 1 | Observation history steps |
+| `dim_model` | 512 | Transformer hidden dimension |
+| `n_heads` | 8 | Multi-head attention heads |
+| `n_encoder_layers` | 4 | Encoder layers |
+| `n_decoder_layers` | 1 | Decoder layers |
+| `dim_feedforward` | 3200 | FFN intermediate dimension |
+| `dropout` | 0.1 | Dropout rate |
+| `kl_weight` | 10.0 | VAE KL divergence weight |
+| `latent_dim` | 32 | VAE latent space dimension |
+| `vision_backbone` | resnet18 | Vision backbone |
+| `learning_rate` | 1e-4 | Adam learning rate |
+| `training_steps` | 3000 | Training iterations |
+| `batch_size` | 64 | Batch size |
+| `temporal_ensemble_coeff` | 0.9 (deploy only) | Temporal ensemble smoothing |
+
+#### Teleoperation Parameters (`mujoco_env/y_env.py`)
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| Move step | 0.007 m | End-effector translation per keypress |
+| Rotate step | ~1.7° | End-effector rotation per keypress |
+| IK max iterations | 50 | Max IK solver iterations |
+| IK tolerance | 1e-2 m / 5° | Position/orientation convergence threshold |
+
+> **Note**: Object body names (e.g., `body_obj_mug_5`, `body_obj_plate_11`) depend on MuJoCo XML compilation results and may differ across machines. If object positions behave unexpectedly, check the body names in `check_success()` and `set_obj_pose()` methods in `y_env.py` and adjust them according to your actual compilation output.
+
+### License
+
+This project is open-sourced under the MIT License. See the [LICENSE](LICENSE) file for details.

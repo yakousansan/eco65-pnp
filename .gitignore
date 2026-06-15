@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+demo_data/data/
+demo_data/videos/
+demo_data/meta/stats.json
+demo_data/meta/episodes.jsonl
+
+# Checkpoints (model weights too large for GitHub, regenerate via training)
+ckpt/act_y/model.safetensors
+
+# Claude/Codex agents
+.agents/
+.codex/
+
+# MuJoCo
+*.mjb

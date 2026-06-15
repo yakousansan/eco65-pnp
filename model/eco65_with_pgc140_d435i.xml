@@ -1,0 +1,220 @@
+<mujoco model="eco65_with_pgc140_and_d435i">
+  <compiler angle="radian" meshdir="." autolimits="true" balanceinertia="true"/>
+  <option integrator="implicitfast"/>
+
+  <default>
+    <default class="eco65">
+      <material specular="0.5" shininess="0.25"/>
+      <joint axis="0 0 1" range="-6.28319 6.28319" armature="0.1"/>
+      <general biastype="affine" ctrlrange="-6.2831 6.2831" gainprm="5000" biasprm="0 -5000 -500"/>
+      <default class="joint_big">
+        <joint damping="10"/>
+        <general forcerange="-330 330"/>
+      </default>
+      <default class="joint_medium">
+        <joint damping="5"/>
+        <general forcerange="-150 150"/>
+      </default>
+      <default class="joint_small">
+        <joint damping="2"/>
+        <general forcerange="-56 56"/>
+      </default>
+      <default class="visual_eco65">
+        <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+      </default>
+      <default class="collision_eco65">
+        <geom type="capsule" group="3"/>
+      </default>
+    </default>
+
+    <default class="pgc140">
+      <joint type="slide" damping="0.5"/>
+      <default class="finger_visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+      </default>
+      <default class="finger_collision">
+        <geom type="box" group="3" friction="1.0 0.005 0.0001"/>
+      </default>
+    </default>
+
+    <default class="d435i">
+      <material specular="0" shininess="0.25"/>
+      <default class="d435i_visual">
+        <geom group="2" type="mesh" contype="0" conaffinity="0" mass="0"/>
+      </default>
+      <default class="d435i_collision">
+        <geom group="3" type="mesh" mass="0"/>
+      </default>
+    </default>
+  </default>
+
+  <asset>
+    <!-- ECO65 materials and meshes -->
+    <material class="eco65" name="eco65_body" rgba="0.9 0.9 0.9 1"/>
+    <material class="eco65" name="eco65_joint" rgba="0.3 0.3 0.3 1"/>
+    <material class="eco65" name="eco65_base" rgba="0.15 0.15 0.15 1"/>
+    <mesh class="eco65" name="eco65_base_link" file="eco65_meshes/base_link.STL"/>
+    <mesh class="eco65" name="eco65_link_1" file="eco65_meshes/link_1.STL"/>
+    <mesh class="eco65" name="eco65_link_2" file="eco65_meshes/link_2.STL"/>
+    <mesh class="eco65" name="eco65_link_3" file="eco65_meshes/link_3.STL"/>
+    <mesh class="eco65" name="eco65_link_4" file="eco65_meshes/link_4.STL"/>
+    <mesh class="eco65" name="eco65_link_5" file="eco65_meshes/link_5.STL"/>
+    <mesh class="eco65" name="eco65_link_6" file="eco65_meshes/link_6.STL"/>
+
+    <!-- PGC140 materials and meshes (STL in meters, no scale needed) -->
+    <material class="pgc140" name="pgc140_body" rgba="0.2 0.2 0.2 1"/>
+    <material class="pgc140" name="pgc140_finger" rgba="0.6 0.6 0.7 1"/>
+    <mesh class="pgc140" name="pgc140_base" file="dh_pgc140_meshes/base_link.STL"/>
+    <mesh class="pgc140" name="pgc140_finger1" file="dh_pgc140_meshes/finger1_Link.STL"/>
+    <mesh class="pgc140" name="pgc140_finger2" file="dh_pgc140_meshes/finger2_Link.STL"/>
+
+    <!-- D435i materials and meshes -->
+    <material class="d435i" name="Black_Acrylic" rgba="0.070360 0.070360 0.070360 1"/>
+    <material class="d435i" name="Cameras_Gray" rgba="0.296138 0.296138 0.296138 1"/>
+    <material class="d435i" name="IR_Emitter_Lens" rgba="0.287440 0.665387 0.327778 1"/>
+    <material class="d435i" name="IR_Lens" rgba="0.035601 0.035601 0.035601 1"/>
+    <material class="d435i" name="IR_Rim" rgba="0.799102 0.806952 0.799103 1"/>
+    <material class="d435i" name="Metal_Casing" rgba="1 1 1 1"/>
+    <material class="d435i" name="RGB_Pupil" rgba="0.087140 0.002866 0.009346 1"/>
+    <mesh file="realsense_d435i/assets/d435i_0.obj"/>
+    <mesh file="realsense_d435i/assets/d435i_1.obj"/>
+    <mesh file="realsense_d435i/assets/d435i_2.obj"/>
+    <mesh file="realsense_d435i/assets/d435i_3.obj"/>
+    <mesh file="realsense_d435i/assets/d435i_4.obj"/>
+    <mesh file="realsense_d435i/assets/d435i_5.obj"/>
+    <mesh file="realsense_d435i/assets/d435i_6.obj"/>
+    <mesh file="realsense_d435i/assets/d435i_7.obj"/>
+    <mesh file="realsense_d435i/assets/d435i_8.obj"/>
+  </asset>
+
+  <worldbody>
+    <light name="spotlight" mode="targetbodycom" target="link_5" pos="0 -1 2"/>
+
+    <!-- ==================== ECO65-6FB Robot Arm ==================== -->
+    <body name="base" pos="0.6 0 0.8" quat="0 0 0 -1" childclass="eco65">
+      <inertial mass="2.0" pos="0.0004101 -8.4575e-05 0.050471"
+                diaginertia="0.0011075 0.001109 0.00075402"/>
+      <geom mesh="eco65_base_link" material="eco65_base" class="visual_eco65"/>
+      <geom class="collision_eco65" type="capsule" size="0.06 0.08" pos="0 0 0.05"/>
+
+      <body name="joint_1_origin" pos="0 0 0.1625">
+        <body name="link_1">
+          <inertial mass="1.507" pos="-0.01105 2.736e-05 -0.03347"
+                    diaginertia="0.001958 0.003101 0.002427"/>
+          <joint name="joint_1" class="joint_big" range="-3.106 3.106"/>
+          <geom mesh="eco65_link_1" material="eco65_body" class="visual_eco65"/>
+          <geom class="collision_eco65" size="0.06 0.05" pos="0 0 -0.03"/>
+
+          <body name="joint_2_origin" pos="-0.086 0 0" quat="-0.49999816 0.50000184 0.5 0.5">
+            <body name="link_2">
+              <inertial mass="2.0227" pos="0.05818 -1.163e-05 -0.05236"
+                        diaginertia="0.002274 0.017311 0.017226"/>
+              <joint name="joint_2" class="joint_big" range="-3.106 2.356"/>
+              <geom mesh="eco65_link_2" material="eco65_body" class="visual_eco65"/>
+              <geom class="collision_eco65" size="0.06 0.13" pos="0.13 0 0"/>
+
+              <body name="joint_3_origin" pos="0.26 0 0">
+                <body name="link_3">
+                  <inertial mass="1.8858" pos="0.092768 -9.3866e-05 0.00181"
+                            diaginertia="0.001916 0.022483 0.021893"/>
+                  <joint name="joint_3" class="joint_medium" range="-2.792 2.53"/>
+                  <geom mesh="eco65_link_3" material="eco65_body" class="visual_eco65"/>
+                  <geom class="collision_eco65" size="0.05 0.12" pos="0.12 0 0"/>
+
+                  <body name="joint_4_origin" pos="0.24 0 -0.05888" quat="0.70710548 0 0 0.70710808">
+                    <body name="link_4">
+                      <inertial mass="0.57" pos="-4.028e-05 -0.03496 0.0038015"
+                                diaginertia="0.000498 0.000325 0.001163"/>
+                      <joint name="joint_4" class="joint_small" range="-3.106 3.106"/>
+                      <geom mesh="eco65_link_4" material="eco65_body" class="visual_eco65"/>
+                      <geom class="collision_eco65" size="0.04 0.055" pos="0 0 0"/>
+
+                      <body name="joint_5_origin" pos="0 -0.11 0" quat="0.70710548 0.70710808 0 0">
+                        <body name="link_5">
+                          <inertial mass="0.641" pos="-3.97e-05 0.022647 -0.007365"
+                                    diaginertia="0.000623 0.000393 0.000557"/>
+                          <joint name="joint_5" class="joint_small" range="-3.106 3.106"/>
+                          <geom mesh="eco65_link_5" material="eco65_body" class="visual_eco65"/>
+                          <geom class="collision_eco65" size="0.04 0.05" pos="0 0.025 0"/>
+
+                          <body name="joint_6_origin" pos="0 0.0967 0" quat="0.70710548 -0.70710808 0 0">
+                            <body name="link_6">
+                              <inertial mass="0.0857" pos="0.0004478 -0.0002134 -0.01033579"
+                                        diaginertia="3.302707e-05 3.0206675e-05 5.1459675e-05"/>
+                              <joint name="joint_6" class="joint_small" range="-6.28 6.28"/>
+                              <geom mesh="eco65_link_6" material="eco65_body" class="visual_eco65"/>
+                              <geom class="collision_eco65" type="cylinder" size="0.04 0.015" pos="0 0 -0.005"/>
+
+                              <site name="attachment_site" pos="0 0 0" quat="-1 1 0 0"/>
+
+                              <!-- ==================== D435i Camera ==================== -->
+                              <body name="d435i_camera" pos="-0.05 0.00 -0.03" quat="0.707107 0 0 0.707107" childclass="d435i">
+                                <geom mesh="d435i_0" material="IR_Lens" class="d435i_visual"/>
+                                <geom mesh="d435i_1" material="IR_Emitter_Lens" class="d435i_visual"/>
+                                <geom mesh="d435i_2" material="IR_Rim" class="d435i_visual"/>
+                                <geom mesh="d435i_3" material="IR_Lens" class="d435i_visual"/>
+                                <geom mesh="d435i_4" material="Cameras_Gray" class="d435i_visual"/>
+                                <geom mesh="d435i_5" material="Black_Acrylic" class="d435i_visual"/>
+                                <geom mesh="d435i_6" material="Black_Acrylic" class="d435i_visual"/>
+                                <geom mesh="d435i_7" material="RGB_Pupil" class="d435i_visual"/>
+                                <geom mesh="d435i_8" mass="0.072" material="Metal_Casing" class="d435i_visual"/>
+                                <geom class="d435i_collision" type="capsule" mesh="d435i_8"/>
+                                <camera name="d435i_rgb" mode="fixed" pos="0 0 0" fovy="42.5" euler="0 3.14159 0"/>
+                              </body>
+
+                              <!-- ==================== DH PGC140 Gripper ==================== -->
+                              <body name="gripper_base" pos="0 0 0" childclass="pgc140">
+                                <inertial mass="0.34365" pos="-3.9257e-06 -0.00027208 0.037806"
+                                          diaginertia="0.00036805 0.0003341 0.00022294"/>
+                                <geom mesh="pgc140_base" material="pgc140_body" class="finger_visual"/>
+                                <geom class="finger_collision" type="box" size="0.04 0.03 0.04" pos="0 0 0.04"/>
+
+                                <!-- Finger 1 -->
+                                <body name="finger1" pos="0.0132 0.0265 0.093" euler="0 0 -1.5708">
+                                  <inertial mass="0.014278" pos="0.0030491 -0.0066024 0.0064209"
+                                            diaginertia="1.7567e-06 2.3034e-06 1.3354e-06"/>
+                                  <joint name="finger1_joint" axis="1 0 0" range="0 0.025"/>
+                                  <geom mesh="pgc140_finger1" material="pgc140_finger" class="finger_visual"/>
+                                  <geom class="finger_collision" type="box" size="0.008 0.01 0.015" pos="0.003 -0.007 0.006"/>
+                                </body>
+
+                                <!-- Finger 2 -->
+                                <body name="finger2" pos="-0.0132 -0.0265 0.093" euler="0 0 1.5708">
+                                  <inertial mass="0.014278" pos="0.0030491 -0.0066024 0.0064209"
+                                            diaginertia="1.7567e-06 2.3034e-06 1.3354e-06"/>
+                                  <joint name="finger2_joint" axis="1 0 0" range="0 0.025"/>
+                                  <geom mesh="pgc140_finger2" material="pgc140_finger" class="finger_visual"/>
+                                  <geom class="finger_collision" type="box" size="0.008 0.01 0.015" pos="0.003 -0.007 0.006"/>
+                                </body>
+                              </body>
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <equality>
+    <joint joint1="finger1_joint" joint2="finger2_joint" polycoef="0 1 0 0 0"/>
+  </equality>
+
+  <actuator>
+    <general class="joint_big" name="joint1" joint="joint_1"/>
+    <general class="joint_big" name="joint2" joint="joint_2"/>
+    <general class="joint_medium" name="joint3" joint="joint_3"/>
+    <general class="joint_small" name="joint4" joint="joint_4"/>
+    <general class="joint_small" name="joint5" joint="joint_5"/>
+    <general class="joint_small" name="joint6" joint="joint_6"/>
+    <position name="finger1_actuator" joint="finger1_joint"
+              ctrlrange="0 0.025" kp="500" forcerange="-50 50"/>
+  </actuator>
+
+</mujoco>
