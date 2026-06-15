@@ -67,7 +67,7 @@
                            ▼
 ┌─────────────────────────────────────────────────────┐
 │                    部署 (4.deploy.py)                 │
-│  加载模型 → 推理 → MuJoCo 执行 → 自主完成任务         │
+│  加载 ACT 模型 → 推理 → MuJoCo 执行 → 自主完成任务     │
 │  + Temporal Ensemble 平滑 + 成功判定                  │
 └─────────────────────────────────────────────────────┘
 ```
@@ -247,13 +247,13 @@ pi0 训练过程：
 
 训练结束后自动绘制预测/真值对比图。
 
-#### 第 4 步：部署测试
+#### 第 4 步：部署测试（ACT）
 
 ```bash
 python 4.deploy.py
 ```
 
-加载训练好的模型，在 MuJoCo 中自主运行。策略根据实时视觉和状态输入预测 action chunk，执行推理。成功完成任务后自动 reset 并继续。
+加载训练好的 **ACT** 策略（`ckpt/act_y/`），在 MuJoCo 中自主运行。策略根据实时视觉和状态输入预测 action chunk，执行推理。成功完成任务后自动 reset 并继续。
 
 <p align="center">
   <img src="docs/deploy_demo.gif" width="480" alt="部署推理演示">
@@ -270,6 +270,7 @@ eco65-pnp/
 ├── 3_act_train.py            # ACT 策略训练脚本
 ├── 4.deploy.py               # ACT 策略部署与推理脚本
 ├── 5_pi0_train.py            # pi0 策略训练脚本
+├── pi0_eco65.yaml            # pi0 训练配置文件
 ├── model/                    # MuJoCo 模型资源
 │   ├── demo_scene.xml        # 主场景（桌面 + 机器人 + 物体）
 │   ├── eco65_with_2f85_d435i.xml  # ECO65 + Robotiq 2F-85 + D435i 模型

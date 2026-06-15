@@ -66,8 +66,8 @@ The core workflow: **Data Collection → Data Visualization → Policy Training 
 └──────────────────────────┬──────────────────────────┘
                            ▼
 ┌─────────────────────────────────────────────────────┐
-│               Deployment (4.deploy.py)               │
-│  Load model → Inference → MuJoCo execution → Task    │
+│            ACT Deployment (4.deploy.py)               │
+│  Load ACT model → Inference → MuJoCo execution → Task │
 │  + Temporal Ensemble smoothing + Success detection   │
 └─────────────────────────────────────────────────────┘
 ```
@@ -247,13 +247,13 @@ pi0 training:
 
 After training, a prediction vs. ground truth comparison plot is displayed.
 
-#### Step 4: Deploy and Test
+#### Step 4: Deploy and Test (ACT)
 
 ```bash
 python 4.deploy.py
 ```
 
-Loads the trained model and runs autonomously in MuJoCo. The policy predicts action chunks from real-time visual and state inputs. Automatically resets on task completion.
+Loads the trained **ACT** policy (`ckpt/act_y/`) and runs autonomously in MuJoCo. The policy predicts action chunks from real-time visual and state inputs. Automatically resets on task completion.
 
 <p align="center">
   <img src="docs/deploy_demo.gif" width="480" alt="Deployment demo">
@@ -270,6 +270,7 @@ eco65-pnp/
 ├── 3_act_train.py            # ACT policy training
 ├── 4.deploy.py               # ACT policy deployment & inference
 ├── 5_pi0_train.py            # pi0 policy training
+├── pi0_eco65.yaml            # pi0 training config
 ├── model/                    # MuJoCo model assets
 │   ├── demo_scene.xml        # Main scene (table + robot + objects)
 │   ├── eco65_with_2f85_d435i.xml  # ECO65 + Robotiq 2F-85 + D435i model
