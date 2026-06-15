@@ -44,5 +44,8 @@ vla-guide.md
 # Local ROS packages
 dh_gripper_ros/
 
+# Local trajectory media
+media/
+
 # MuJoCo
 *.mjb
