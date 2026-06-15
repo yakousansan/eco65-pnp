@@ -33,7 +33,12 @@
         <geom type="mesh" contype="0" conaffinity="0" group="2"/>
       </default>
       <default class="finger_collision">
-        <geom type="box" group="3" friction="1.0 0.005 0.0001"/>
+        <geom group="3" friction="2.5 0.2 0.02" condim="4"
+              solimp="0.95 0.99 0.001" solref="0.004 1" priority="1"/>
+      </default>
+      <default class="finger_pad_collision">
+        <geom type="box" group="3" friction="5.0 1.0 0.1" condim="6"
+              solimp="0.99 0.999 0.0005" solref="0.002 1" priority="3"/>
       </default>
     </default>
 
@@ -167,7 +172,8 @@
                                 <inertial mass="0.34365" pos="-3.9257e-06 -0.00027208 0.037806"
                                           diaginertia="0.00036805 0.0003341 0.00022294"/>
                                 <geom mesh="pgc140_base" material="pgc140_body" class="finger_visual"/>
-                                <geom class="finger_collision" type="box" size="0.04 0.03 0.04" pos="0 0 0.04"/>
+                                <geom name="pgc140_base_collision" class="finger_collision" type="box"
+                                      size="0.04 0.03 0.04" pos="0 0 0.04"/>
 
                                 <!-- Finger 1 -->
                                 <body name="finger1" pos="0.0132 0.0265 0.093" euler="0 0 -1.5708">
@@ -175,7 +181,8 @@
                                             diaginertia="1.7567e-06 2.3034e-06 1.3354e-06"/>
                                   <joint name="finger1_joint" axis="1 0 0" range="0 0.025"/>
                                   <geom mesh="pgc140_finger1" material="pgc140_finger" class="finger_visual"/>
-                                  <geom class="finger_collision" type="box" size="0.008 0.01 0.015" pos="0.003 -0.007 0.006"/>
+                                  <geom name="finger1_pad_collision" class="finger_pad_collision"
+                                        size="0.005 0.012 0.035" pos="0.008 -0.004 0.006"/>
                                 </body>
 
                                 <!-- Finger 2 -->
@@ -184,7 +191,8 @@
                                             diaginertia="1.7567e-06 2.3034e-06 1.3354e-06"/>
                                   <joint name="finger2_joint" axis="1 0 0" range="0 0.025"/>
                                   <geom mesh="pgc140_finger2" material="pgc140_finger" class="finger_visual"/>
-                                  <geom class="finger_collision" type="box" size="0.008 0.01 0.015" pos="0.003 -0.007 0.006"/>
+                                  <geom name="finger2_pad_collision" class="finger_pad_collision"
+                                        size="0.005 0.012 0.035" pos="0.008 -0.004 0.006"/>
                                 </body>
                               </body>
                             </body>
@@ -202,6 +210,12 @@
     </body>
   </worldbody>
 
+  <contact>
+    <exclude body1="gripper_base" body2="finger1"/>
+    <exclude body1="gripper_base" body2="finger2"/>
+    <exclude body1="finger1" body2="finger2"/>
+  </contact>
+
   <equality>
     <joint joint1="finger1_joint" joint2="finger2_joint" polycoef="0 1 0 0 0"/>
   </equality>
@@ -214,7 +228,7 @@
     <general class="joint_small" name="joint5" joint="joint_5"/>
     <general class="joint_small" name="joint6" joint="joint_6"/>
     <position name="finger1_actuator" joint="finger1_joint"
-              ctrlrange="0 0.025" kp="500" forcerange="-50 50"/>
+              ctrlrange="0 0.025" kp="8000" forcerange="-140 140"/>
   </actuator>
 
 </mujoco>
