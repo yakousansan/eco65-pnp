@@ -239,6 +239,12 @@ python 4.deploy.py
 
 加载训练好的模型，在 MuJoCo 中自主运行。策略根据实时视觉和状态输入预测 action chunk，执行推理。成功完成任务后自动 reset 并继续。
 
+<p align="center">
+  <img src="docs/deploy_demo.gif" width="480" alt="部署推理演示">
+</p>
+
+> 以上演示基于 10 条遥操作轨迹训练。
+
 ### 项目结构
 
 ```

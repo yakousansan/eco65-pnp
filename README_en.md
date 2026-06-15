@@ -239,6 +239,12 @@ python 4.deploy.py
 
 Loads the trained model and runs autonomously in MuJoCo. The policy predicts action chunks from real-time visual and state inputs. Automatically resets on task completion.
 
+<p align="center">
+  <img src="docs/deploy_demo.gif" width="480" alt="Deployment demo">
+</p>
+
+> Demo above based on 10 teleoperated demonstration trajectories.
+
 ### Project Structure
 
 ```
