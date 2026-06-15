@@ -118,7 +118,7 @@ Input                        Output
 - **LeRobot v3.0 format**: Standardized Parquet + MP4 storage, compatible with HuggingFace LeRobot ecosystem
 - **High-fidelity MuJoCo simulation**: ECO65 6-axis arm + Robotiq 2F-85 gripper + D435i depth camera
 - **IK solver**: Damped Least Squares (DLS) inverse kinematics for end-effector space teleoperation
-- **Multi-view rendering**: Third-person view (agentview) + wrist view (d435i_rgb) + side view
+- **Dual-view rendering**: Third-person view (agentview) + wrist view (d435i_rgb)
 - **Randomized object positions**: Mug and plate positions are randomized within table bounds on each reset
 
 ### Dependencies
@@ -196,7 +196,8 @@ In the MuJoCo window, use keyboard teleoperation to control the robot arm for th
 Each successful placement auto-saves one episode. Closing the window triggers video encoding and disk write.
 
 <p align="center">
-  <img src="docs/ep4_collect.gif" width="480" alt="Teleoperation collection demo">
+  <img src="docs/episode_03_agent.gif" width="380" alt="Agent View">
+  <img src="docs/episode_03_wrist.gif" width="380" alt="Wrist View">
 </p>
 
 > **Tip**: Modify `NUM_DEMO` to change collection count, `ROOT` to change save path in the script.
@@ -210,7 +211,7 @@ python 2.visualize_data.py
 Replay collected episodes in MuJoCo to verify data quality. Automatically computes normalization statistics (mean/std) and saves to `demo_data/meta/stats.json`.
 
 <p align="center">
-  <img src="docs/ep5_visualize.gif" width="480" alt="Visualization replay demo">
+  <img src="docs/episode_01_agent.gif" width="480" alt="Visualization replay demo">
 </p>
 
 #### Step 3: Train ACT Policy
@@ -237,8 +238,6 @@ python 4.deploy.py
 ```
 
 Loads the trained model and runs autonomously in MuJoCo. The policy predicts action chunks from real-time visual and state inputs. Automatically resets on task completion.
-
-> **Poor performance?** Return to Step 1 and collect more demonstrations. 20+ episodes recommended for good generalization.
 
 ### Project Structure
 

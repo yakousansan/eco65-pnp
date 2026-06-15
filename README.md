@@ -118,7 +118,7 @@
 - **LeRobot v3.0 数据格式**：标准化的 Parquet + MP4 存储，兼容 HuggingFace LeRobot 生态
 - **MuJoCo 高保真仿真**：ECO65 六轴机械臂 + Robotiq 2F-85 夹爪 + D435i 深度相机
 - **IK 逆运动学求解**：阻尼最小二乘法（DLS），支持末端空间遥操作
-- **多视角渲染**：第三人称视角 (agentview) + 腕部视角 (d435i_rgb) + 侧面视角 (sideview)
+- **双视角渲染**：第三人称视角 (agentview) + 腕部视角 (d435i_rgb)
 - **随机物体位置**：每次 reset 在桌面范围内随机生成杯子和盘子的位置，增强数据多样性
 
 ### 环境依赖
@@ -196,7 +196,8 @@ python 1.collect_data.py
 每完成一次成功放置，自动保存一个 episode。关闭窗口后自动编码视频并写入磁盘。
 
 <p align="center">
-  <img src="docs/ep4_collect.gif" width="480" alt="遥操作采集演示">
+  <img src="docs/episode_03_agent.gif" width="380" alt="Agent View">
+  <img src="docs/episode_03_wrist.gif" width="380" alt="Wrist View">
 </p>
 
 > **提示**：可在脚本中修改 `NUM_DEMO` 变量调整采集条数，修改 `ROOT` 变量调整数据保存路径。
@@ -210,7 +211,7 @@ python 2.visualize_data.py
 在 MuJoCo 窗口中回放采集的数据，验证动作是否平滑、物体位置是否正确。同时自动计算数据统计量（均值/标准差）并保存到 `demo_data/meta/stats.json`。
 
 <p align="center">
-  <img src="docs/ep5_visualize.gif" width="480" alt="可视化回放演示">
+  <img src="docs/episode_01_agent.gif" width="480" alt="可视化回放演示">
 </p>
 
 #### 第 3 步：训练 ACT 策略
@@ -237,8 +238,6 @@ python 4.deploy.py
 ```
 
 加载训练好的模型，在 MuJoCo 中自主运行。策略根据实时视觉和状态输入预测 action chunk，执行推理。成功完成任务后自动 reset 并继续。
-
-> **效果不佳？** 返回第 1 步采集更多演示数据。推荐 20+ 条演示以获得较好的泛化能力。
 
 ### 项目结构
 

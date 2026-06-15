@@ -66,7 +66,7 @@ dataloader = torch.utils.data.DataLoader(
     num_workers=4,
     batch_size=64,
     shuffle=True,
-    pin_memory=device.type != "cpu",
+    pin_memory=device.type != "gpu",
     drop_last=False,
 )
 
@@ -118,7 +118,7 @@ test_dataloader = torch.utils.data.DataLoader(
     num_workers=4,
     batch_size=1,
     shuffle=False,
-    pin_memory=device.type != "cpu",
+    pin_memory=device.type != "gpu",
     sampler=episode_sampler,
 )
 policy.reset()

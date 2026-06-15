@@ -8,7 +8,7 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 
 REPO_NAME = 'eco65_pnp'
-NUM_DEMO = 1 # 采集演示条数
+NUM_DEMO = 5 # 采集演示条数
 ROOT = "./demo_data" # 演示数据保存根目录
 
 TASK_NAME = 'Put mug cup on the plate'

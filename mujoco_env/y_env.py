@@ -167,10 +167,6 @@ class SimpleEnv:
             cam_name='agentview')
         self.rgb_ego = self.env.get_fixed_cam_rgb(
             cam_name='d435i_rgb')
-        # self.rgb_top = self.env.get_fixed_cam_rgbd_pcd(
-        #     cam_name='topview')
-        self.rgb_side = self.env.get_fixed_cam_rgb(
-            cam_name='sideview')
         return self.rgb_agent, self.rgb_ego
         
 
@@ -189,8 +185,6 @@ class SimpleEnv:
         self.env.viewer_rgb_overlay(rgb_agent_view,loc='top right')
         self.env.viewer_rgb_overlay(rgb_egocentric_view,loc='bottom right')
         if teleop:
-            rgb_side_view = add_title_to_img(self.rgb_side,text='Side View',shape=(640,480))
-            self.env.viewer_rgb_overlay(rgb_side_view, loc='top left')
             self.env.viewer_text_overlay(text1='Key Pressed',text2='%s'%(self.env.get_key_pressed_list()))
             self.env.viewer_text_overlay(text1='Key Repeated',text2='%s'%(self.env.get_key_repeated_list()))
             joint_angles = self.env.get_qpos_joints(joint_names=self.joint_names)

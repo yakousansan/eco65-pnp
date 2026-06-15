@@ -22,7 +22,7 @@ class EpisodeSampler(torch.utils.data.Sampler):
         return len(self.frame_ids)
 
 # 选择要可视化的 episode 编号
-episode_index = 0
+episode_index = 3
 
 episode_sampler = EpisodeSampler(dataset, episode_index)
 dataloader = torch.utils.data.DataLoader(
@@ -61,7 +61,6 @@ while PnPEnv.env.is_viewer_alive():
         # 3×256×256 → 256×256×3
         PnPEnv.rgb_agent = np.transpose(PnPEnv.rgb_agent, (1,2,0))
         PnPEnv.rgb_ego = np.transpose(PnPEnv.rgb_ego, (1,2,0))
-        PnPEnv.rgb_side = np.zeros((480, 640, 3), dtype=np.uint8)
         PnPEnv.render()
         step += 1
 
