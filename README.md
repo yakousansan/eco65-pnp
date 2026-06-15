@@ -1,4 +1,4 @@
-# ECO65 模仿学习：从数据采集到模型部署
+# ECO65 模仿学习：ACT 与 pi0 双策略拾取放置
 
 <p align="center">
   <img src="docs/1.png" width="640" alt="ECO65 MuJoCo 仿真场景截图">
@@ -22,7 +22,7 @@
 
 本项目实现了一个完整的机器人模仿学习流程：通过键盘遥操作系统控制 MuJoCo 仿真环境中的 ECO65 六轴机械臂，完成 **"将杯子放到盘子上"** 的拾取放置任务，采集演示数据，训练 ACT（Action Chunking with Transformers）策略网络，最终部署模型让机器人自主完成任务。
 
-核心工作流分为四步：**数据采集 → 数据可视化 → 策略训练 → 模型部署**，基于 LeRobot 数据集框架（v3.0 格式）和 MuJoCo 物理仿真引擎构建。
+核心工作流：**数据采集 → 数据可视化 → 策略训练（ACT / pi0）→ 模型部署**，基于 LeRobot 数据集框架（v3.0 格式）和 MuJoCo 物理仿真引擎构建。
 
 ### 目录
 
@@ -57,11 +57,12 @@
 └──────────────────────────┬──────────────────────────┘
                            ▼
 ┌─────────────────────────────────────────────────────┐
-│                    训练 (3.train.py)                  │
-│  ACT 策略: ResNet18 + Transformer Encoder-Decoder    │
+│              训练 (3_act_train.py / 5_pi0_train.py)   │
+│  ACT: ResNet18 + Transformer Encoder-Decoder         │
+│  pi0: VLA 基础模型（预训练权重微调）                   │
 │  输入: RGB 图像 (256×256) + 末端位姿 (6维)           │
-│  输出: 关节角 + 夹爪 (7维) × 10步 action chunk       │
-│  保存: ckpt/act_y/                                   │
+│  输出: 关节角 + 夹爪 (7维) × action chunk            │
+│  保存: ckpt/act_y/ 或 ckpt/pi0_eco65/                │
 └──────────────────────────┬──────────────────────────┘
                            ▼
 ┌─────────────────────────────────────────────────────┐
@@ -112,8 +113,9 @@
 
 - **端到端模仿学习流水线**：从数据采集到模型部署，四个脚本一站式完成
 - **键盘遥操作控制**：直观的 WASD + QE 末端增量控制，无需专业遥操作设备
-- **ACT 策略网络**：基于 Transformer 的 Action Chunking，预测 10 步连续动作序列，产生平滑轨迹
-- **VAE 动作编码**：可选的变分自编码器，学习动作潜在表示，增强策略多样性
+- **双策略支持**：ACT（Action Chunking with Transformers）与 pi0（VLA 基础模型），适应不同数据规模和任务需求
+- **ACT 策略网络**：基于 Transformer 的 Action Chunking，预测 10 步连续动作序列，VAE 编码增强多样性
+- **pi0 预训练微调**：基于大规模机器人数据预训练，仅需 10-20 条演示即可泛化到新任务
 - **Temporal Ensemble**：部署时的时间集成平滑，消除预测抖动
 - **LeRobot v3.0 数据格式**：标准化的 Parquet + MP4 存储，兼容 HuggingFace LeRobot 生态
 - **MuJoCo 高保真仿真**：ECO65 六轴机械臂 + Robotiq 2F-85 夹爪 + D435i 深度相机
@@ -165,8 +167,8 @@ pip install numpy opencv-python pillow glfw matplotlib
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yakousansan/eco65-act-pnp.git
-cd eco65-act-pnp
+git clone https://github.com/yakousansan/eco65-pnp.git
+cd eco65-pnp
 
 pip install -e .
 ```
@@ -214,13 +216,23 @@ python 2.visualize_data.py
   <img src="docs/episode_01_agent.gif" width="480" alt="可视化回放演示">
 </p>
 
-#### 第 3 步：训练 ACT 策略
+#### 第 3 步：训练策略（ACT 或 pi0）
+
+**ACT 训练：**
 
 ```bash
-python 3.train.py
+python 3_act_train.py
 ```
 
-训练过程：
+**pi0 训练：**
+
+```bash
+python train_model.py --config_path pi0_eco65.yaml
+# 部署 pi0 策略
+python 5_pi0_train.py
+```
+
+ACT 训练过程：
 - 加载数据集和统计量
 - 初始化 ACT 网络（ResNet18 + Transformer + VAE）
 - 3000 步训练，Adam 优化器 (lr=1e-4)，batch size=64
@@ -228,6 +240,12 @@ python 3.train.py
 - 损失函数：L1 重建损失 + KL 散度 (权重 10.0)
 - GPU 训练约 5-15 分钟
 - 模型保存至 `ckpt/act_y/`
+
+pi0 训练过程：
+- 自动加载 `lerobot/pi0` 预训练权重（基于大规模机器人数据）
+- 20000 步微调，batch size=16（可按显存调整）
+- 仅需 10-20 条演示即可泛化
+- 模型保存至 `ckpt/pi0_eco65/`
 
 训练结束后自动绘制预测/真值对比图。
 
@@ -248,11 +266,12 @@ python 4.deploy.py
 ### 项目结构
 
 ```
-eco65-act-pnp/
+eco65-pnp/
 ├── 1.collect_data.py         # 数据采集脚本（键盘遥操作 + LeRobot 录制）
 ├── 2.visualize_data.py       # 数据可视化脚本（回放 + 统计量计算）
-├── 3.train.py                # ACT 策略训练脚本
-├── 4.deploy.py               # 模型部署与推理脚本
+├── 3_act_train.py            # ACT 策略训练脚本
+├── 4.deploy.py               # ACT 策略部署与推理脚本
+├── 5_pi0_train.py            # pi0 策略训练与部署脚本
 ├── model/                    # MuJoCo 模型资源
 │   ├── demo_scene.xml        # 主场景（桌面 + 机器人 + 物体）
 │   ├── eco65_with_2f85_d435i.xml  # ECO65 + Robotiq 2F-85 + D435i 模型
@@ -289,7 +308,7 @@ eco65-act-pnp/
 | 采集帧率 | 20 Hz | 每秒采集 20 帧 |
 | 图像分辨率 | 256 × 256 | 采集图像尺寸 |
 
-#### ACT 策略参数 (`3.train.py` 和 `ckpt/act_y/config.json`)
+#### ACT 策略参数 (`3_act_train.py` 和 `ckpt/act_y/config.json`)
 
 | 参数 | 值 | 说明 |
 |------|-----|------|

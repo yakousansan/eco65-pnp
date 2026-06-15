@@ -1,4 +1,4 @@
-# ECO65 Imitation Learning: From Data Collection to Model Deployment
+# ECO65 Imitation Learning: ACT & pi0 Dual-Policy Pick-and-Place
 
 <p align="center">
   <img src="docs/1.png" width="640" alt="ECO65 MuJoCo Simulation Screenshot">
@@ -22,7 +22,7 @@
 
 This project implements a complete imitation learning pipeline: controlling an ECO65 6-DOF robotic arm in the MuJoCo simulation environment via keyboard teleoperation to perform the **"Put mug cup on the plate"** pick-and-place task, collecting demonstration data, training an ACT (Action Chunking with Transformers) policy network, and finally deploying the model for autonomous task completion.
 
-The core workflow consists of four steps: **Data Collection → Data Visualization → Policy Training → Model Deployment**, built on the LeRobot dataset framework (v3.0 format) and MuJoCo physics engine.
+The core workflow: **Data Collection → Data Visualization → Policy Training (ACT / pi0) → Model Deployment**, built on the LeRobot dataset framework (v3.0 format) and MuJoCo physics engine.
 
 ### Table of Contents
 
@@ -57,11 +57,12 @@ The core workflow consists of four steps: **Data Collection → Data Visualizati
 └──────────────────────────┬──────────────────────────┘
                            ▼
 ┌─────────────────────────────────────────────────────┐
-│                Training (3.train.py)                 │
-│  ACT Policy: ResNet18 + Transformer Encoder-Decoder  │
+│          Training (3_act_train.py / 5_pi0_train.py)  │
+│  ACT: ResNet18 + Transformer Encoder-Decoder         │
+│  pi0: VLA foundation model (pretrained fine-tuning)  │
 │  Input: RGB image (256×256) + end-effector pose (6D) │
-│  Output: joint angles + gripper (7D) × 10-step chunk│
-│  Save: ckpt/act_y/                                   │
+│  Output: joint angles + gripper (7D) × action chunk  │
+│  Save: ckpt/act_y/ or ckpt/pi0_eco65/                │
 └──────────────────────────┬──────────────────────────┘
                            ▼
 ┌─────────────────────────────────────────────────────┐
@@ -112,8 +113,9 @@ Input                        Output
 
 - **End-to-end imitation learning pipeline**: Four scripts cover data collection through model deployment
 - **Keyboard teleoperation**: Intuitive WASD + QE end-effector control — no specialized hardware required
-- **ACT policy network**: Transformer-based Action Chunking predicts 10 consecutive action steps for smooth trajectories
-- **VAE action encoding**: Optional variational autoencoder learns action latent representations for diverse behavior
+- **Dual-policy support**: ACT (Action Chunking with Transformers) and pi0 (VLA foundation model) for different data scales
+- **ACT policy**: Transformer-based Action Chunking with 10-step prediction and VAE encoding for smooth trajectories
+- **pi0 pretrained fine-tuning**: Large-scale robot data pretrained, only 10-20 demos needed to generalize to new tasks
 - **Temporal Ensemble**: Exponential moving average smoothing during deployment eliminates prediction jitter
 - **LeRobot v3.0 format**: Standardized Parquet + MP4 storage, compatible with HuggingFace LeRobot ecosystem
 - **High-fidelity MuJoCo simulation**: ECO65 6-axis arm + Robotiq 2F-85 gripper + D435i depth camera
@@ -165,8 +167,8 @@ pip install numpy opencv-python pillow glfw matplotlib
 
 ```bash
 # Clone the repository
-git clone https://github.com/yakousansan/eco65-act-pnp.git
-cd eco65-act-pnp
+git clone https://github.com/yakousansan/eco65-pnp.git
+cd eco65-pnp
 
 pip install -e .
 ```
@@ -214,13 +216,23 @@ Replay collected episodes in MuJoCo to verify data quality. Automatically comput
   <img src="docs/episode_01_agent.gif" width="480" alt="Visualization replay demo">
 </p>
 
-#### Step 3: Train ACT Policy
+#### Step 3: Train Policy (ACT or pi0)
+
+**ACT training:**
 
 ```bash
-python 3.train.py
+python 3_act_train.py
 ```
 
-Training process:
+**pi0 training:**
+
+```bash
+python train_model.py --config_path pi0_eco65.yaml
+# Deploy pi0 policy
+python 5_pi0_train.py
+```
+
+ACT training:
 - Load dataset and statistics
 - Initialize ACT network (ResNet18 + Transformer + VAE)
 - 3000 training steps, Adam optimizer (lr=1e-4), batch size=64
@@ -228,6 +240,12 @@ Training process:
 - Loss: L1 reconstruction + KL divergence (weight 10.0)
 - GPU training takes ~5-15 minutes
 - Model saved to `ckpt/act_y/`
+
+pi0 training:
+- Auto-loads `lerobot/pi0` pretrained weights (large-scale robot data)
+- 20000 fine-tuning steps, batch size=16 (adjustable by VRAM)
+- Only 10-20 demos needed for generalization
+- Model saved to `ckpt/pi0_eco65/`
 
 After training, a prediction vs. ground truth comparison plot is displayed.
 
@@ -248,11 +266,12 @@ Loads the trained model and runs autonomously in MuJoCo. The policy predicts act
 ### Project Structure
 
 ```
-eco65-act-pnp/
+eco65-pnp/
 ├── 1.collect_data.py         # Data collection (keyboard teleop + LeRobot recording)
 ├── 2.visualize_data.py       # Data visualization (replay + stats computation)
-├── 3.train.py                # ACT policy training
-├── 4.deploy.py               # Model deployment & inference
+├── 3_act_train.py            # ACT policy training
+├── 4.deploy.py               # ACT policy deployment & inference
+├── 5_pi0_train.py            # pi0 policy training & deployment
 ├── model/                    # MuJoCo model assets
 │   ├── demo_scene.xml        # Main scene (table + robot + objects)
 │   ├── eco65_with_2f85_d435i.xml  # ECO65 + Robotiq 2F-85 + D435i model
@@ -289,7 +308,7 @@ eco65-act-pnp/
 | Collection FPS | 20 Hz | Frames per second |
 | Image Resolution | 256 × 256 | Captured image size |
 
-#### ACT Policy Parameters (`3.train.py` and `ckpt/act_y/config.json`)
+#### ACT Policy Parameters (`3_act_train.py` and `ckpt/act_y/config.json`)
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
